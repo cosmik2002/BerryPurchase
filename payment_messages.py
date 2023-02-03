@@ -1,7 +1,7 @@
 import re
 
 from database import SessionRemote
-from models import smsMsg, Payments, Payers
+from app.models import smsMsg, Payments, Payers
 
 
 def parse_sms(msg):

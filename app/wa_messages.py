@@ -3,12 +3,19 @@ from datetime import datetime
 
 import PySimpleGUI as sg
 
-from models import Customers, Messages
+from app.models import Customers, Messages, Goods, MessagesSchema
+
+
+def get_messages(session):
+    messages = session.query(Messages).all()
+    messages_schema = MessagesSchema(many=True)
+    output = messages_schema.dump(messages)
+    return output
 
 
 def get_wa_messages(session):
     # file = sg.popup_get_file("select File")
-    file = r"meggages.json"
+    file = r"../meggages.json"
     with open(file, encoding='utf-8') as f:
         messages = json.load(f)
 
@@ -30,3 +37,14 @@ def get_wa_messages(session):
             session.add(msg)
             session.commit()
 
+
+def get_message_orders(session):
+    goods = session.query(Goods).all()
+    messages = session.query(Messages).all()
+    for message in messages:
+        found = []
+        for good in goods:
+            if message.text and any(word in message.text.lower() for word in good.variants.split(';')):
+                found.append(good.name)
+        if found:
+            print(message.text, found)

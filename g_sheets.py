@@ -1,6 +1,6 @@
-from models import Clients
+from app.models import Clients
 import pygsheets
-import pandas as pd
+
 
 class gSheets:
     def __init__(self, session):

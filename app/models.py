@@ -1,8 +1,10 @@
+from marshmallow_sqlalchemy import fields
 from sqlalchemy import func, Column, Integer, String, ForeignKey, LargeBinary, Numeric, DateTime, Time, Text
 from sqlalchemy.dialects.postgresql import JSONB, ARRAY
 from sqlalchemy.orm import relationship
 
 from database import Base
+import marshmallow_sqlalchemy as ma
 
 
 class smsMsg(Base):
@@ -61,6 +63,7 @@ class Messages(Base):
     customer_id = Column(Integer, ForeignKey(Customers.id), nullable=False)
     timestamp = Column(DateTime, nullable=False)
     text = Column(Text)
+    customer = relationship(Customers, foreign_keys=customer_id)
 
 
 class Payments(Base):
@@ -78,3 +81,20 @@ class MessageOrders(Base):
     good_id = Column(Integer, ForeignKey(Goods.id), index=True)
     quantity = Column(Numeric)
     price = Column(Numeric)
+
+
+class CustomersSchema(ma.SQLAlchemyAutoSchema):
+    class Meta:
+        model = Customers
+        include_fk = True
+        # include_relationships = True
+        load_instance = True
+
+
+class MessagesSchema(ma.SQLAlchemyAutoSchema):
+    class Meta:
+        model = Messages
+        # include_fk = True
+        include_relationships = True
+        load_instance = True
+    customer = fields.Nested(CustomersSchema)
