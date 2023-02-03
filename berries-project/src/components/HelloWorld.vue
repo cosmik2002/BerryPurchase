@@ -70,6 +70,7 @@
           </v-btn>
         </v-col>
       </v-row>
+      <v-alert>alert</v-alert>
     </v-responsive>
   </v-container>
 </template>
