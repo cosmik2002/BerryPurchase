@@ -1,3 +1,4 @@
+import marshmallow_sqlalchemy.schema
 from marshmallow_sqlalchemy import fields
 from sqlalchemy import func, Column, Integer, String, ForeignKey, LargeBinary, Numeric, DateTime, Time, Text
 from sqlalchemy.dialects.postgresql import JSONB, ARRAY
@@ -90,6 +91,19 @@ class CustomersSchema(ma.SQLAlchemyAutoSchema):
         # include_relationships = True
         load_instance = True
 
+class ClientsSchema(ma.SQLAlchemyAutoSchema):
+    class Meta:
+        model = Clients
+        include_fk = True
+        # include_relationships = True
+        load_instance = True
+
+class PayersSchema(ma.SQLAlchemyAutoSchema):
+    class Meta:
+        model = Payers
+        include_fk = True
+        # include_relationships = True
+        load_instance = True
 
 class MessagesSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
@@ -98,3 +112,14 @@ class MessagesSchema(ma.SQLAlchemyAutoSchema):
         include_relationships = True
         load_instance = True
     customer = fields.Nested(CustomersSchema)
+
+class ClientsLinksSchema(ma.SQLAlchemyAutoSchema):
+    class Meta:
+        model = ClientsLinks
+        include_fk = True
+        load_instance = True
+
+    customer = fields.Nested(CustomersSchema)
+    client = fields.Nested(ClientsSchema)
+    payer = fields.Nested(PayersSchema)
+
