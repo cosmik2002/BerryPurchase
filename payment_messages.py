@@ -1,5 +1,6 @@
 import re
 
+from app.pdf_read import ReadSberStatementPdf
 from database import SessionRemote
 from app.models import smsMsg, Payments, Payers
 
@@ -20,6 +21,8 @@ def parse_sms(msg):
             value = value.replace(' ', '')
     return sender, value
 
+def parse_sber_statement(file):
+    result = ReadSberStatementPdf().read_and_parse_doc(file)
 
 def get_payment_messages(session):
     session_remote = SessionRemote()
