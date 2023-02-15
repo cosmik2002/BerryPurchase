@@ -48,7 +48,10 @@ class ReadSberStatementPdf:
         # "SBOL перевод 4276****6624 Р. МАКСИМ ВАЛЕРЬЕВИЧ"
         tab['payer'] = tab[tab.index % 2 == 1]['name'].apply(
             lambda x: (f"{r.group(2)} {r.group(3)} {r.group(1)}") if (r := re.search('(\w)\.\s(\w+)\s(\w+)$', x)) is not None else '')
+        # тут в лямбду передается Series из двух ячеек для группировки
         tab = tab.groupby(tab.index // 2).agg(lambda x: x.dropna().astype(str).str.cat(sep=','))
+        tab['date'] = tab['date'].astype('datetime64')
+        tab['date1'] = tab['date1'].astype('datetime64')
         return tab
 
 if __name__ == "__main__":

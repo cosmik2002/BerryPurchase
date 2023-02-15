@@ -7,7 +7,7 @@ class gSheets:
         self.session = session
 
     def get_clients(self):
-        client = pygsheets.authorize(service_file='lucid-access-99211-bd2544a973ad.json')
+        client = pygsheets.authorize(service_file=r'lucid-access-99211-bd2544a973ad.json')
 
         # t = client.spreadsheet_titles()
         # print (t)
@@ -15,7 +15,8 @@ class gSheets:
         # print (t)
         # Open the spreadsheet and the first sheet.
         sh = client.open('Урбаны 2023')
-        wks = sh.sheet1
+        # wks = sh.sheet1
+        wks = sh.worksheet('index', 1)
         header = wks.cell('A2')
         # rng = wks.get_values('A1', 'AI51', returnas='range')
         # rng = wks.get_all_values()

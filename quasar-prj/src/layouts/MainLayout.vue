@@ -62,16 +62,14 @@ const linksList = [
     link: '/clientslinks'
   },
   {
-    title: 'Discord Chat Channel',
-    caption: 'chat.quasar.dev',
+    title: 'Payments',
     icon: 'chat',
-    link: 'https://chat.quasar.dev'
+    link: '/payments'
   },
   {
-    title: 'Forum',
-    caption: 'forum.quasar.dev',
+    title: 'Clients',
     icon: 'record_voice_over',
-    link: 'https://forum.quasar.dev'
+    link: '/clients'
   },
   {
     title: 'Twitter',

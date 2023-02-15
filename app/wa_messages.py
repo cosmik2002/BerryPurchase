@@ -13,29 +13,34 @@ def get_messages(session):
     output = messages_schema.dump(messages)
     return output
 
-def get_clients(session):
+
+def load_clients(session):
     clients = session.query(Clients).all()
     clients_schema = ClientsSchema(many=True)
     output = clients_schema.dump(clients)
     return output
 
-def get_customers(session):
+
+def load_customers(session):
     customers = session.query(Customers).all()
     customers_schema = CustomersSchema(many=True)
     output = customers_schema.dump(customers)
     return output
 
-def get_payers(session):
+
+def load_payers(session):
     payers = session.query(Payers).all()
     payers_schema = PayersSchema(many=True)
     output = payers_schema.dump(payers)
     return output
+
 
 def get_clients_links(session):
     clients_links = session.query(ClientsLinks).all()
     clients_links_schema = ClientsLinksSchema(many=True)
     output = clients_links_schema.dump(clients_links)
     return output
+
 
 def get_wa_messages(session):
     # file = sg.popup_get_file("select File")
