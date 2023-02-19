@@ -1,8 +1,8 @@
 import marshmallow_sqlalchemy.schema
 from marshmallow_sqlalchemy import fields
-from sqlalchemy import func, Column, Integer, String, ForeignKey, LargeBinary, Numeric, DateTime, Time, Text
+from sqlalchemy import func, Column, Integer, String, ForeignKey, LargeBinary, Numeric, DateTime, Time, Text, Table
 from sqlalchemy.dialects.postgresql import JSONB, ARRAY
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, configure_mappers
 
 from database import Base
 import marshmallow_sqlalchemy as ma
@@ -25,6 +25,8 @@ class Clients(Base):
     __tablename__ = "clients"
     id: Column = Column(Integer, primary_key=True)
     name: Column = Column(Text)
+    payers = relationship("Payers", secondary="payers_to_clients", back_populates="clients")
+    customers = relationship('Customers', secondary='customers_to_clients', back_populates='clients')
 
 
 class Goods(Base):
@@ -34,6 +36,16 @@ class Goods(Base):
     variants: Column = Column(Text)
 
 
+payers_to_clients = Table('payers_to_clients',
+                          Base.metadata,
+                          Column('payer_id',Integer, ForeignKey('payers.id'), primary_key=True),
+                          Column('client_id',Integer, ForeignKey('clients.id'), primary_key=True))
+
+customers_to_clients = Table('customers_to_clients',
+                             Base.metadata,
+                             Column('customer_id',Integer, ForeignKey('customers.id'), primary_key=True),
+                             Column('client_id',Integer, ForeignKey('clients.id'), primary_key=True))
+
 class Customers(Base):
     __tablename__ = "customers"
     id: Column = Column(Integer, primary_key=True)
@@ -42,6 +54,7 @@ class Customers(Base):
     number: Column = Column(Text, index=True)
     short_name: Column = Column(Text)
     push_name: Column = Column(Text)
+    clients = relationship(Clients, secondary=customers_to_clients, back_populates='customers')
 
 
 class Payers(Base):
@@ -50,6 +63,7 @@ class Payers(Base):
     name: Column = Column(Text, index=True)
     card_number: Column = Column(Text, index=True)
     comments: Column = Column(Text)
+    clients = relationship(Clients, secondary=payers_to_clients, back_populates="payers")
 
 
 class ClientsLinks(Base):
@@ -93,14 +107,8 @@ class MessageOrders(Base):
     quantity: Column = Column(Numeric)
     price: Column = Column(Numeric)
 
-
-class CustomersSchema(ma.SQLAlchemyAutoSchema):
-    class Meta:
-        model = Customers
-        include_fk = True
-        # include_relationships = True
-        load_instance = True
-
+#https://stackoverflow.com/questions/75457741/dynamically-generating-marshmallow-schemas-for-sqlalchemy-fails-on-column-attrib
+configure_mappers()
 
 class ClientsSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
@@ -108,7 +116,17 @@ class ClientsSchema(ma.SQLAlchemyAutoSchema):
         include_fk = True
         # include_relationships = True
         load_instance = True
+    payers = fields.Nested('PayersSchema', many=True)
+    customers = fields.Nested('CustomersSchema', many=True)
 
+
+class CustomersSchema(ma.SQLAlchemyAutoSchema):
+    class Meta:
+        model = Customers
+        include_fk = True
+        # include_relationships = True
+        load_instance = True
+    clients = fields.Nested(ClientsSchema(exclude=('customers',)), many=True)
 
 class PayersSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
@@ -116,26 +134,26 @@ class PayersSchema(ma.SQLAlchemyAutoSchema):
         include_fk = True
         # include_relationships = True
         load_instance = True
+    clients = fields.Nested(ClientsSchema(exclude=('payers',)), many=True)
 
 
 class PaymentsSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = Payments
         include_fk = True
-        include_relationships = True
+        # include_relationships = True
         load_instance = True
 
-    payer = fields.Nested(PayersSchema)
+    payer = fields.Nested(PayersSchema())
 
 
 class MessagesSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = Messages
-        # include_fk = True
-        include_relationships = True
+        include_fk = True
+        # include_relationships = True
         load_instance = True
-
-    customer = fields.Nested(CustomersSchema)
+    customer = fields.Nested(CustomersSchema())
 
 
 class ClientsLinksSchema(ma.SQLAlchemyAutoSchema):
@@ -143,7 +161,6 @@ class ClientsLinksSchema(ma.SQLAlchemyAutoSchema):
         model = ClientsLinks
         include_fk = True
         load_instance = True
-
-    customer = fields.Nested(CustomersSchema)
-    client = fields.Nested(ClientsSchema)
-    payer = fields.Nested(PayersSchema)
+    customer = fields.Nested(CustomersSchema())
+    client = fields.Nested(ClientsSchema())
+    payer = fields.Nested(PayersSchema())

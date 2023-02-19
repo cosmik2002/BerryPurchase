@@ -1,5 +1,6 @@
 <template>
-
+  <q-btn @click="loadMessages()">Load Messages</q-btn>
+  <div>{{ result }}</div>
   <q-list>
     <q-item v-for="item in messages"
                  :key="item.id" v-ripple:red>
@@ -24,9 +25,18 @@ export default {
     client: [],
     dialog: false,
     title: 'null',
-    loaded: false
+    loaded: false,
+    result: {}
   }),
   methods:  {
+    loadMessages() {
+        axios.get(path+'/load_messages').then((res) => {
+          this.result = res.data;
+        }).catch((error) => {
+          console.error(error);
+        });
+
+    },
     messageClick(id){
       this.title = id;
       if (!this.loaded) {

@@ -15,7 +15,7 @@ def get_messages(session):
 
 
 def load_clients(session):
-    clients = session.query(Clients).all()
+    clients = session.query(Clients).order_by('name').all()
     clients_schema = ClientsSchema(many=True)
     output = clients_schema.dump(clients)
     return output
