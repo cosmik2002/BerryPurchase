@@ -106,6 +106,8 @@ class MessageOrders(Base):
     good_id: Column = Column(Integer, ForeignKey(Goods.id), index=True)
     quantity: Column = Column(Numeric)
     price: Column = Column(Numeric)
+    good = relationship(Goods, foreign_keys=good_id)
+    message = relationship(Messages, foreign_keys=message_id, backref='message_order')
 
 #https://stackoverflow.com/questions/75457741/dynamically-generating-marshmallow-schemas-for-sqlalchemy-fails-on-column-attrib
 configure_mappers()
@@ -151,10 +153,27 @@ class MessagesSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = Messages
         include_fk = True
-        # include_relationships = True
+        include_relationships = True
         load_instance = True
     customer = fields.Nested(CustomersSchema())
+    message_order = fields.Nested('MessageOrdersSchema', many=True)
 
+
+class GoodsSchema(ma.SQLAlchemyAutoSchema):
+    class Meta:
+        model = Goods
+        include_fk = True
+        # include_relationships = True
+        load_instance = True
+
+class MessageOrdersSchema(ma.SQLAlchemyAutoSchema):
+    class Meta:
+        model = MessageOrders
+        include_fk = True
+        include_relationships = True
+        load_instance = True
+    # message = fields.Nested(MessagesSchema(exclude=('message_order',)))
+    good = fields.Nested(GoodsSchema())
 
 class ClientsLinksSchema(ma.SQLAlchemyAutoSchema):
     class Meta:

@@ -10,8 +10,9 @@ from app.main import bp
 from app.payment_messages import PaymentsProcessor
 from app.whatsapp import WhatsApp
 from database import Session
-from app.wa_messages import get_messages, get_clients_links, load_customers, load_payers, load_clients
-from app.models import ClientsLinks, ClientsLinksSchema, payers_to_clients, Payers, Clients
+from app.wa_messages import get_messages, get_clients_links, load_customers, load_payers, load_clients, load_goods
+from app.models import ClientsLinks, ClientsLinksSchema, payers_to_clients, Payers, Clients, Customers, \
+    MessageOrdersSchema
 
 session = Session()
 wa: Optional[WhatsApp] = None
@@ -78,6 +79,9 @@ def customers():
 def payers():
     return load_payers(session)
 
+@bp.route('/goods', methods=['GET'])
+def goods():
+    return load_goods(session)
 
 @bp.route('/payments', methods=['GET'])
 def payments():
@@ -97,6 +101,21 @@ def payers_to_clients():
         session.commit()
         return response_object
 
+@bp.route('/customers_to_clients', methods=['POST'])
+def customers_to_clients():
+    response_object = {'status': 'success'}
+    if request.method == 'POST':
+        data = request.get_json()
+        customer: Customers = session.query(Customers).get(data['customer']['id'])
+        client: Clients = session.query(Clients).get(data['client']['id'])
+        message_order = MessageOrdersSchema(many=True).load(data['message_order'], session=session)
+        if customer.clients and customer.clients[0].id != client.id:
+            customer.clients.remove(customer.clients[0])
+        customer.clients.append(client)
+        for good in message_order:
+            session.add(good)
+        session.commit()
+        return response_object
 
 @bp.route('/clients_links', methods=['GET', 'POST'])
 def clients_link():

@@ -4,12 +4,12 @@ from datetime import datetime
 import PySimpleGUI as sg
 
 from app.models import Customers, Messages, Goods, MessagesSchema, Clients, ClientsSchema, ClientsLinks, \
-    ClientsLinksSchema, CustomersSchema, Payers, PayersSchema
+    ClientsLinksSchema, CustomersSchema, Payers, PayersSchema, GoodsSchema
 
 
 def get_messages(session):
     messages = session.query(Messages).all()
-    messages_schema = MessagesSchema(many=True)
+    messages_schema = MessagesSchema(many=True, exclude=('message_order', ))
     output = messages_schema.dump(messages)
     return output
 
@@ -34,6 +34,12 @@ def load_payers(session):
     output = payers_schema.dump(payers)
     return output
 
+
+def load_goods(session):
+    goods = session.query(Goods).all()
+    goods_schema = GoodsSchema(many=True)
+    output = goods_schema.dump(goods)
+    return output
 
 def get_clients_links(session):
     clients_links = session.query(ClientsLinks).all()
