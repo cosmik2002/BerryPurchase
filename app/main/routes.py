@@ -10,7 +10,8 @@ from app.main import bp
 from app.payment_messages import PaymentsProcessor
 from app.whatsapp import WhatsApp
 from database import Session
-from app.wa_messages import get_messages, get_clients_links, load_customers, load_payers, load_clients, load_goods
+from app.wa_messages import get_messages, get_clients_links, load_customers, load_payers, load_clients, load_goods, \
+    get_message_order
 from app.models import ClientsLinks, ClientsLinksSchema, payers_to_clients, Payers, Clients, Customers, \
     MessageOrdersSchema
 
@@ -24,13 +25,24 @@ def index():
 
 
 @bp.route('/messages', methods=['GET'])
-def messages():
-    return get_messages(session)
+@bp.route('/messages/<message_id>', methods=['GET'])
+def messages(message_id=None):
+    return get_messages(session, message_id)
 
 
-# @bp.route('/get_message_orders', methods=['GET'])
-# def messages():
-#     return get_messages(session)
+@bp.route('/message_order/<message_id>/<message_order_id>', methods=['GET'])
+@bp.route('/message_order/<message_id>', methods=['GET'])
+@bp.route('/message_order', methods=['POST'])
+def message_order(message_id=None, message_order_id=None):
+    response_object = {'status': 'success'}
+    if request.method == 'POST':
+        data = request.get_json()
+        message_order_row = MessageOrdersSchema().load(data['message_order_row'], session=session)
+        session.add(message_order_row)
+        session.commit()
+        return MessageOrdersSchema().dumps(message_order_row)
+    else:
+        return get_message_order(session, message_id, message_order_id)
 
 @bp.route('/start_wa_client', methods=['GET'])
 def start_wa_client():
@@ -67,7 +79,7 @@ def clients():
 
 @bp.route('/get_clients', methods=['GET'])
 def get_clients():
-    return gSheets.get_clients(session)
+    return gSheets(session=session).get_clients()
 
 
 @bp.route('/customers', methods=['GET'])
@@ -108,12 +120,9 @@ def customers_to_clients():
         data = request.get_json()
         customer: Customers = session.query(Customers).get(data['customer']['id'])
         client: Clients = session.query(Clients).get(data['client']['id'])
-        message_order = MessageOrdersSchema(many=True).load(data['message_order'], session=session)
         if customer.clients and customer.clients[0].id != client.id:
             customer.clients.remove(customer.clients[0])
         customer.clients.append(client)
-        for good in message_order:
-            session.add(good)
         session.commit()
         return response_object
 

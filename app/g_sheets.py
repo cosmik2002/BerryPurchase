@@ -7,6 +7,11 @@ class gSheets:
         self.session = session
 
     def get_clients(self):
+        counters = {
+            'all':0,
+            'new_clients': 0,
+            'found': 0
+        }
         client = pygsheets.authorize(service_file=r'lucid-access-99211-bd2544a973ad.json')
 
         # t = client.spreadsheet_titles()
@@ -26,9 +31,13 @@ class gSheets:
         for client in clients:
             if not client:
                 continue
+            counters['all'] = counters['all'] + 1
             cli = self.session.query(Clients).filter_by(name=client).all()
             if not cli:
                 new_client = Clients(name=client)
                 self.session.add(new_client)
                 self.session.commit()
-
+                counters['new_clients'] = counters['new_clients'] + 1
+            else:
+                counters['found'] += 1
+        return counters

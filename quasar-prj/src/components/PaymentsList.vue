@@ -3,7 +3,17 @@
   <q-btn @click="fileUpload($event)">Загрузить выписку</q-btn>
   <q-btn @click="parseNotify($event)">Разобрать уведомления</q-btn>
   <div>{{ upload_result }}</div>
-  <q-list>
+      <q-input
+        v-model="search"
+        debounce="1000"
+        filled
+        placeholder="Поиск"
+        hint="Поиск по карте, сумме, имени"
+      >
+        <template v-slot:append>
+          <q-icon name="search" />
+        </template>
+      </q-input>  <q-list>
     <q-item v-for="item in Payments"
             :key="item.id" v-ripple:red clickable @click="editPayer(item)" :class="itemClass(item)">
       <q-item-section >
@@ -51,8 +61,7 @@
 <script>
 
 import axios from 'axios';
-
-const path = 'http://localhost:5000';
+import { mapGetters, mapActions } from 'vuex'
 
 export default {
   name: 'PaymentsList',
@@ -65,8 +74,20 @@ export default {
     dialog: false,
     title: 'null',
     loaded: false,
-    upload_result: ''
+    upload_result: '',
+    src: '',
   }),
+  computed:{
+    search:{
+      get() {
+        return this.src;
+      },
+      set(val) {
+        this.src = val;
+        console.log(val);
+      }
+    }
+  },
   methods: {
     itemClass(item){
       if (item.payer && item.payer.clients.length > 0) {

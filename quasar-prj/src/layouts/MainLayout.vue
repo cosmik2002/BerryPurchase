@@ -57,11 +57,6 @@ const linksList = [
     link: '/messages'
   },
   {
-    title: 'ClientsLinks',
-    icon: 'code',
-    link: '/clientslinks'
-  },
-  {
     title: 'Payments',
     icon: 'chat',
     link: '/payments'
@@ -72,22 +67,9 @@ const linksList = [
     link: '/clients'
   },
   {
-    title: 'Twitter',
-    caption: '@quasarframework',
-    icon: 'rss_feed',
-    link: 'https://twitter.quasar.dev'
-  },
-  {
-    title: 'Facebook',
-    caption: '@QuasarFramework',
-    icon: 'public',
-    link: 'https://facebook.quasar.dev'
-  },
-  {
-    title: 'Quasar Awesome',
-    caption: 'Community Quasar projects',
-    icon: 'favorite',
-    link: 'https://awesome.quasar.dev'
+    title: 'store',
+    icon: 'record_voice_over',
+    link: '/store'
   }
 ]
 

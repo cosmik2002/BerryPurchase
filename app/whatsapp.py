@@ -65,7 +65,7 @@ class WhatsApp:
             if chat.name == name:
                 my_chat = chat
                 break
-        messages = my_chat.fetchMessages({'limit': 50})
+        messages = my_chat.fetchMessages({'limit': 500})
         # print(messages)
 
         for i, message in enumerate(messages):

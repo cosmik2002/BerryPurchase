@@ -1,8 +1,11 @@
+import marshmallow
 import marshmallow_sqlalchemy.schema
-from marshmallow_sqlalchemy import fields
+import simplejson as simplejson
+from marshmallow_sqlalchemy import fields, auto_field
 from sqlalchemy import func, Column, Integer, String, ForeignKey, LargeBinary, Numeric, DateTime, Time, Text, Table
 from sqlalchemy.dialects.postgresql import JSONB, ARRAY
-from sqlalchemy.orm import relationship, configure_mappers
+from sqlalchemy.ext.hybrid import hybrid_property
+from sqlalchemy.orm import relationship, configure_mappers, column_property
 
 from database import Base
 import marshmallow_sqlalchemy as ma
@@ -84,6 +87,13 @@ class Messages(Base):
     timestamp: Column = Column(DateTime, nullable=False)
     text: Column = Column(Text)
     customer = relationship(Customers, foreign_keys=customer_id)
+    @hybrid_property
+    def order_descr(self):
+        descr = ''
+        for row in self.message_order:
+            descr += f"{row.good.name}-{row.quantity:.2f}; "
+        return descr
+
 
 
 class Payments(Base):
@@ -155,6 +165,7 @@ class MessagesSchema(ma.SQLAlchemyAutoSchema):
         include_fk = True
         include_relationships = True
         load_instance = True
+    order_descr = marshmallow.fields.Str()
     customer = fields.Nested(CustomersSchema())
     message_order = fields.Nested('MessageOrdersSchema', many=True)
 
@@ -169,6 +180,7 @@ class GoodsSchema(ma.SQLAlchemyAutoSchema):
 class MessageOrdersSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = MessageOrders
+        json_module = simplejson
         include_fk = True
         include_relationships = True
         load_instance = True

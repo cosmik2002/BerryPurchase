@@ -4,13 +4,27 @@ from datetime import datetime
 import PySimpleGUI as sg
 
 from app.models import Customers, Messages, Goods, MessagesSchema, Clients, ClientsSchema, ClientsLinks, \
-    ClientsLinksSchema, CustomersSchema, Payers, PayersSchema, GoodsSchema
+    ClientsLinksSchema, CustomersSchema, Payers, PayersSchema, GoodsSchema, MessageOrders, MessageOrdersSchema
 
 
-def get_messages(session):
-    messages = session.query(Messages).all()
-    messages_schema = MessagesSchema(many=True, exclude=('message_order', ))
+def get_messages(session, message_id):
+    if message_id:
+        messages = session.query(Messages).get(message_id)
+        messages_schema = MessagesSchema(exclude=('message_order', ))
+    else:
+        messages = session.query(Messages).order_by(Messages.timestamp.desc()).all()
+        messages_schema = MessagesSchema(many=True, exclude=('message_order', ))
     output = messages_schema.dump(messages)
+    return output
+
+def get_message_order(session, message_id, message_order_id):
+    if message_order_id:
+        message_order = session.query(MessageOrders).get(message_order_id)
+        message_order_schema = MessageOrdersSchema()
+    else:
+        message_order = session.query(MessageOrders).filter(MessageOrders.message_id == message_id).all()
+        message_order_schema = MessageOrdersSchema(many=True)
+    output = message_order_schema.dumps(message_order)
     return output
 
 

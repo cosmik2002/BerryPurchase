@@ -1,5 +1,6 @@
 <template>
   <q-btn @click="parseClients()">Get Clients From G</q-btn>
+  <div> {{ result }}</div>
   <q-table
   :columns="columns"
   :rows="clients"
@@ -28,12 +29,13 @@ export default {
     clients: [],
     dialog: false,
     title: 'null',
-    loaded: false
+    loaded: false,
+    result: {}
   }),
   methods:  {
     parseClients() {
       axios.get(path+'/get_clients').then((res)=>{
-        this.clients = res.data;
+        this.result = res.data;
       }).catch((error) => {
         console.error(error);
       });
