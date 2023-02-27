@@ -105,12 +105,13 @@ def payers_to_clients():
     response_object = {'status': 'success'}
     if request.method == 'POST':
         data = request.get_json()
-        payer: Payers = session.query(Payers).get(data['payer']['id'])
-        client: Clients = session.query(Clients).get(data['client']['id'])
+        payer: Payers = session.query(Payers).get(data['payer_id'])
+        client: Clients = session.query(Clients).get(data['client_id'])
         if payer.clients and payer.clients[0].id != client.id:
             payer.clients.remove(payer.clients[0])
         payer.clients.append(client)
         session.commit()
+        response_object = {**response_object, ** data}
         return response_object
 
 @bp.route('/customers_to_clients', methods=['POST'])

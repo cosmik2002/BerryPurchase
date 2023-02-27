@@ -1,0 +1,40 @@
+<template>
+    <q-item >
+      <q-item-section >
+        <q-item-label v-if="item.payer">
+          <div>Плательщик: {{ item.payer.name }}</div>
+          <div>Карта: {{ item.payer.card_number }}</div>
+        </q-item-label>
+        <q-item-label>{{ item.timestamp }} {{ item.sum }} {{ item.operation_code }}{{ item.sms_id }} {{
+            item.comment
+          }}
+        </q-item-label>
+      </q-item-section>
+      <q-item-section side top>
+        <q-item-label v-if="item.payer && item.payer.clients.length > 0">
+          <div>Клиент: {{ item.payer.clients[0].name }}</div>
+        </q-item-label>
+      </q-item-section>
+    <q-separator/>
+    </q-item>
+</template>
+
+<script>
+export default {
+  name: "PaymentItem",
+  props: ['item'],
+  methods: {
+        itemClass(item){
+      if (item.payer && item.payer.clients.length > 0) {
+        return "bg-green-1";
+      } else {
+        return 'bg-red-1';
+      }
+    },
+  }
+}
+</script>
+
+<style scoped>
+
+</style>

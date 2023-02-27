@@ -1,6 +1,6 @@
 export default function () {
   return {
-    clients:[{id:1,name:'vasya'}],
+    clients:[],
     payments: [],
     messages: [],
     customers: [],
