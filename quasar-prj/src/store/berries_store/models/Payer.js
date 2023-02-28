@@ -1,6 +1,6 @@
 import { Model } from '@vuex-orm/core'
 import PayersToClients from "src/store/berries_store/models/PayersToClients";
-import {Clients} from "src/store/berries_store/models/index";
+import {Client} from "src/store/berries_store/models/index";
 
 export default class Payer extends Model {
   static entity = 'payers'
@@ -10,7 +10,7 @@ export default class Payer extends Model {
       name: this.attr(null),
       card_number: this.attr(''),
       comments: this.attr(''),
-      clients: this.belongsToMany(Clients, PayersToClients, 'payer_id', 'client_id')
+      clients: this.belongsToMany(Client, PayersToClients, 'payer_id', 'client_id')
     }
   }
 }

@@ -27,7 +27,13 @@ def index():
 @bp.route('/messages', methods=['GET'])
 @bp.route('/messages/<message_id>', methods=['GET'])
 def messages(message_id=None):
-    return get_messages(session, message_id)
+    search_options = {
+        'src': request.args.get('search'),
+        'has_order': request.args.get('has_order')
+    }
+    page = request.args.get('page', type=int)
+    page_size = request.args.get('page_size', type=int)
+    return get_messages(session, message_id, search_options, page, page_size)
 
 
 @bp.route('/message_order/<message_id>/<message_order_id>', methods=['GET'])
@@ -37,7 +43,7 @@ def message_order(message_id=None, message_order_id=None):
     response_object = {'status': 'success'}
     if request.method == 'POST':
         data = request.get_json()
-        message_order_row = MessageOrdersSchema().load(data['message_order_row'], session=session)
+        message_order_row = MessageOrdersSchema().load(data, session=session)
         session.add(message_order_row)
         session.commit()
         return MessageOrdersSchema().dumps(message_order_row)

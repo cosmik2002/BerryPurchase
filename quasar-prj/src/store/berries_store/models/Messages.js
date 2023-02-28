@@ -11,6 +11,7 @@ export default class Message extends Model {
       customer_id: this.attr(null),
       timestamp: this.attr(null),
       text: this.attr(null),
+      order_descr: this.attr(null),
       customer: this.belongsTo(Customer, 'customer_id'),
       message_orders: this.hasMany(MessageOrder, 'message_id')
     }

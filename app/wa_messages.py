@@ -1,5 +1,6 @@
 import json
 from datetime import datetime
+from sqlalchemy import or_
 
 import PySimpleGUI as sg
 
@@ -7,12 +8,24 @@ from app.models import Customers, Messages, Goods, MessagesSchema, Clients, Clie
     ClientsLinksSchema, CustomersSchema, Payers, PayersSchema, GoodsSchema, MessageOrders, MessageOrdersSchema
 
 
-def get_messages(session, message_id):
+def get_messages(session, message_id, search_options, page, page_size):
+    query = session.query(Messages)
     if message_id:
-        messages = session.query(Messages).get(message_id)
+        messages = query.get(message_id)
         messages_schema = MessagesSchema(exclude=('message_order', ))
     else:
-        messages = session.query(Messages).order_by(Messages.timestamp.desc()).all()
+        if search_options['src']:
+            # query = query.join(Customers, isouter=True)
+            query = query.filter(Messages.text.like(f"{search_options}"))
+        if search_options['has_order']:
+            query = query.join(MessageOrders)
+        query = query.order_by(Messages.timestamp.desc())
+        if page_size:
+            query = query.limit(page_size)
+            if page:
+                query = query.offset((page-1) * page_size)
+        messages = query.all()
+        # messages = session.query(Messages).order_by(Messages.timestamp.desc()).all()
         messages_schema = MessagesSchema(many=True, exclude=('message_order', ))
     output = messages_schema.dump(messages)
     return output

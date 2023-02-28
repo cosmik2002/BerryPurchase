@@ -1,7 +1,7 @@
 
 // Dependancies ===============
 
-import Clients from './Clients'
+import Client from './Clients'
 import Customers from './Customers'
 import CustomersToClients from './CustomersToClients'
 import Goods from './Goods'
@@ -14,7 +14,7 @@ import Payment from "src/store/berries_store/models/Payments";
 // Export =====================
 
   export {
-    Clients,
+    Client,
     Customers,
     CustomersToClients,
     PayersToClients,
