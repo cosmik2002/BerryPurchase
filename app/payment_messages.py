@@ -4,6 +4,7 @@ from collections import namedtuple
 from typing import List
 
 from pandas import DataFrame
+from sqlalchemy import or_
 from tqdm import tqdm
 from app.pdf_read import ReadSberStatementPdf
 from database import SessionRemote, Session
@@ -12,6 +13,13 @@ import datetime as dt
 
 PayerData = namedtuple('PayerData', 'name card_number text')
 
+
+def is_number(s):
+    try:
+        float(s)
+        return True
+    except ValueError:
+        return False
 
 class PaymentsProcessor:
 
@@ -60,8 +68,17 @@ class PaymentsProcessor:
 
         return sender, value, date, bank
 
-    def get_payments(self, session):
-        payments = session.query(Payments).all()
+    def get_payments(self, session, page, page_size, src):
+        query = session.query(Payments)
+        if src:
+            query = query.join(Payers, isouter=True)
+            query = query.filter(or_(Payers.card_number.like(f"%{src}%"), Payments.comment.like(f"%{src}%"),
+                             Payments.sum == src if is_number(src) else False))
+        if page_size:
+            query = query.limit(page_size)
+            if page:
+                query = query.offset((page-1) * page_size)
+        payments = query.all()
         payments_schema = PaymentsSchema(many=True)
         output = payments_schema.dump(payments)
         return output
@@ -87,13 +104,13 @@ class PaymentsProcessor:
             if payer:
                 return check_payers(payer)
 
-        #если плетельщик из двух слов, пытаемся найти по имени и букве фамилии
+        # если плетельщик из двух слов, пытаемся найти по имени и букве фамилии
         if len(sender_parts := payer_data.name.split()) == 2:
             payer = self.session.query(Payers).filter(Payers.name.like(f"{sender_parts[0]} % {sender_parts[1]}")).all()
             if payer:
                 return check_payers(payer)
 
-        #если плетельщик из трех слов, пытаемся найти по имени и букве фамилии
+        # если плетельщик из трех слов, пытаемся найти по имени и букве фамилии
         if payer_data.name != '' and len(payers_parts := payer_data.name.split()) == 3:
             payer = self.session.query(Payers).filter(Payers.name == f"{payers_parts[0]} {payers_parts[2]}").all()
             if payer:
@@ -105,7 +122,6 @@ class PaymentsProcessor:
             self.session.commit()
             self.counters['payers_add'] += 1
             return payer
-
 
     def find_and_update_payment(self):
         pass
@@ -125,8 +141,10 @@ class PaymentsProcessor:
                 PayerData(card_number=row.card_number, name=row.payer.upper(), text=row.name))
             start_date = row.date - datetime.timedelta(minutes=30)
             end_date = row.date + datetime.timedelta(minutes=30)
-            payment: List[Payments] = self.session.query(Payments).filter(Payments.sum == row.summa, Payments.operation_code == None,
-                                                          Payments.timestamp.between(start_date, end_date)).all()
+            payment: List[Payments] = self.session.query(Payments).filter(Payments.sum == row.summa,
+                                                                          Payments.operation_code == None,
+                                                                          Payments.timestamp.between(start_date,
+                                                                                                     end_date)).all()
             if payment:
                 if len(payment) > 1:
                     raise Exception("too many payments " + ';'.join([p.comment for p in payment]))

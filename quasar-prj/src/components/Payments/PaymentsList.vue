@@ -26,6 +26,11 @@
     >
     </payment-c>
   </q-list>
+  <div class="pagination">
+    <q-btn class="parev_page" v-if="page>1" @click="page--; getPayments()">Prev</q-btn>
+    <div class="page_number"> {{ page }}</div>
+    <q-btn class="next_page" @click="page++; getPayments()">Next</q-btn>
+  </div>
 <payer-to-client-dialog
   :payment="payment"
   v-model="dialog"
@@ -47,19 +52,12 @@ export default {
     dialog: false,
     upload_result: '',
     src: '',
+    page: 1,
+    page_size: 10
   }),
   computed:{
     payments () {
-      if (this.src) {
-        let p = Payment.query().with('payer').whereHas('payer', (query) => {
-          query.where((payer) =>
-          !!payer.card_number && payer.card_number.indexOf(this.src) !== -1
-        )
-        }).with('payer.clients').all();
-        return p;
-      } else {
         return Payment.query().with('payer').with('payer.clients').all();
-      }
     },
     search:{
       get() {
@@ -67,11 +65,7 @@ export default {
       },
       set(val) {
         this.src = val;
-/*        this.payments = Payment.query().with('payer', (query) => {
-          query.where((payer) => {
-          payer.card_number && payer.card_number.indexOf(val) !== -1
-        })
-        }).with('payer.clients').all();*/
+        this.getPayments();
         console.log(val);
       }
     }
@@ -82,6 +76,16 @@ export default {
 
   },
   methods: {
+    getPayments() {
+        let url = 'http://localhost:5000/payments';
+        let params = '';
+        if (this.search)
+          params += `search=${this.src}`;
+        params += (params !== '' ? '&' : '') + `page=${this.page}`;
+        params += (params !== '' ? '&' : '') + `page_size=${this.page_size}`;
+        url += '?' + params;
+        Payment.api().get(url, { persistBy: 'create' });
+    },
     itemClass(item){
       if (item.payer && item.payer.clients.length > 0) {
         return "bg-green-1";
@@ -127,8 +131,18 @@ export default {
     },
   },
   mounted() {
-    Payment.api().get('http://localhost:5000/payments');
+    this.getPayments();
   }
 
 }
 </script>
+
+<style scoped>
+.pagination {
+  display: flex;
+  flex-wrap: wrap;
+}
+.page_number {
+  padding: 10px;
+}
+</style>

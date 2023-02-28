@@ -97,7 +97,10 @@ def goods():
 
 @bp.route('/payments', methods=['GET'])
 def payments():
-    return PaymentsProcessor().get_payments(session)
+    src = request.args.get('search')
+    page = request.args.get('page', type=int)
+    page_size = request.args.get('page_size', type=int)
+    return PaymentsProcessor().get_payments(session, page, page_size, src)
 
 
 @bp.route('/payers_to_clients', methods=['POST'])
