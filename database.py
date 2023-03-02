@@ -12,7 +12,7 @@ SessionMakerRemote = sessionmaker(autocommit=False, autoflush=True, bind=engine_
 SessionRemote = scoped_session(SessionMakerRemote)
 
 engine = create_engine(
-    Config.SQLALCHEMY_DATABASE_URI)
+    Config.SQLALCHEMY_DATABASE_URI_NO_FLASK)
 SessionLocal = sessionmaker(autocommit=False, autoflush=True, bind=engine)
 Session = scoped_session(SessionLocal)
 

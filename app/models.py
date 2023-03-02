@@ -138,7 +138,7 @@ class CustomersSchema(ma.SQLAlchemyAutoSchema):
         include_fk = True
         # include_relationships = True
         load_instance = True
-    clients = fields.Nested(ClientsSchema(exclude=('customers',)), many=True)
+    clients = fields.Nested(ClientsSchema(exclude=('customers', 'payers')), many=True)
 
 class PayersSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
@@ -146,7 +146,7 @@ class PayersSchema(ma.SQLAlchemyAutoSchema):
         include_fk = True
         # include_relationships = True
         load_instance = True
-    clients = fields.Nested(ClientsSchema(exclude=('payers',)), many=True)
+    clients = fields.Nested(ClientsSchema(exclude=('payers','customers')), many=True)
 
 
 class PaymentsSchema(ma.SQLAlchemyAutoSchema):

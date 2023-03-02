@@ -44,6 +44,8 @@ import PaymentItem from 'components/Payments/PaymentItem.vue'
 import Payment from "src/store/berries_store/models/Payments";
 import PayerToClientDialog from "components/Payments/PayerToClientDialog.vue";
 
+const path = 'http://192.168.4.160:5000';
+
 export default {
   name: 'PaymentsList',
   data: () => ({
@@ -101,7 +103,7 @@ export default {
 
     parseNotify(evt) {
       this.upload_result = '';
-      axios.get('parse_notify').then((data) => {
+      axios.get(path + '/parse_notify').then((data) => {
         this.upload_result = data.data;
       }).catch((error) => {
         console.error(error);
@@ -113,7 +115,7 @@ export default {
       const me = this;
       const formData = new FormData();
       formData.append('file', this.file);
-      axios.post('file_save',
+      axios.post(path + '/file_save',
         formData,
         {
           headers: {
