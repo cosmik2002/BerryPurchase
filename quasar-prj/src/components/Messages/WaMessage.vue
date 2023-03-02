@@ -2,7 +2,7 @@
   <q-item
     :class="itemClass(item)">
     <q-item-section>
-      <q-item-label>{{ item.timestamp }}</q-item-label>
+      <q-item-label>{{item.id}} {{ item.timestamp }}</q-item-label>
       <q-item-label>{{ item.customer.name }} {{ item.customer.number }}</q-item-label>
       <q-item-label>{{ item.customer.push_name }}</q-item-label>
       <q-item-label> {{ item.text }}</q-item-label>

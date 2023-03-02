@@ -25,7 +25,7 @@ import CustomerToClientDialog from "components/Messages/CustomerToClientDialog.v
 import MessageOrderDialog from "components/Messages/MessageOrderDialog.vue";
 import {Message} from "src/store/berries_store/models";
 
-const path = 'http://localhost:5000';
+const path = 'http://192.168.4.160:5000';
 
 export default {
   name: 'MessagesList',
@@ -83,7 +83,7 @@ export default {
       });
     },
     getMessages() {
-      let url = 'http://localhost:5000/messages';
+      let url = 'messages';
       let params = '';
       if (this.search)
         params += `search=${this.search}`;

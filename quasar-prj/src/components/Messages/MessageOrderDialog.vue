@@ -10,6 +10,7 @@
           :rows="message_order"
           row-key="id"
         >
+
           <template v-slot:top>
             <q-btn icon="add" @click="showAddGood"></q-btn>
           </template>
@@ -89,7 +90,7 @@ export default {
       console.log("delete " + row);
     },
     getMessageOrder() {
-      MessageOrder.api().get('http://localhost:5000/message_order/' + this.message.id)
+      MessageOrder.api().get('message_order/' + this.message.id, { persistBy: 'create' } )
     }
   },
   beforeUpdate() {

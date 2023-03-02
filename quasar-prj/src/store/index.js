@@ -14,7 +14,7 @@ import axios from "axios";
  * async/await or return a Promise which resolves
  * with the Store instance.
  */
- VuexORM.use(VuexORMAxios, { axios })
+ VuexORM.use(VuexORMAxios, { axios, baseURL: 'http://192.168.4.160:5000/' })
 
 // Create a new instance of Database.
 const database = new VuexORM.Database()

@@ -37,16 +37,16 @@ export default {
   }),
   computed: {
     clients() {
-      return Client.query().orderBy('name').all();
+      return Client.query().with('customers').orderBy('name').all();
     }
   },
   methods: {
     getClients() {
-      Client.api().get('http://localhost:5000/clients', {persistBy: 'create'});
+      Client.api().get('clients');
     },
 
     saveCustomerToClient() {
-      CustomersToClients.api().post('http://localhost:5000/customers_to_clients', {
+      CustomersToClients.api().post('customers_to_clients', {
         client_id: this.client.id,
         customer_id: this.message.customer.id
       }).then((results) => {

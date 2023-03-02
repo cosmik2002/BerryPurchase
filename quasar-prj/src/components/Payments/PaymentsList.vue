@@ -77,7 +77,7 @@ export default {
   },
   methods: {
     getPayments() {
-        let url = 'http://localhost:5000/payments';
+        let url = 'payments';
         let params = '';
         if (this.search)
           params += `search=${this.src}`;
@@ -101,7 +101,7 @@ export default {
 
     parseNotify(evt) {
       this.upload_result = '';
-      axios.get('http://localhost:5000/parse_notify').then((data) => {
+      axios.get('parse_notify').then((data) => {
         this.upload_result = data.data;
       }).catch((error) => {
         console.error(error);
@@ -113,7 +113,7 @@ export default {
       const me = this;
       const formData = new FormData();
       formData.append('file', this.file);
-      axios.post('http://localhost:5000/file_save',
+      axios.post('file_save',
         formData,
         {
           headers: {

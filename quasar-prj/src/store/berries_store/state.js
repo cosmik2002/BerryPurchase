@@ -1,10 +1,5 @@
 export default function () {
   return {
-    clients:[],
-    payments: [],
-    messages: [],
-    customers: [],
-    message_order: [],
-    goods: []
+    basePath: 'http://192.168.4.160:5000'
   }
 }

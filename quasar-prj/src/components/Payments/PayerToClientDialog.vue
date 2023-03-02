@@ -12,6 +12,8 @@
           v-model="client"
           :options="clients"
           option-label="name"
+          use-input
+          @filter="filterFn"
           option-value="id"/>
       </q-card-section>
       <q-card-actions>
@@ -30,18 +32,24 @@ export default {
   name: "PayerToClientDialog",
   props: ['payment'],
   emits: ['close'],
-  data: () =>({
+  data: () => ({
     client: null,
-    oldClient: null
+    oldClient: null,
+    search: ''
   }),
   computed: {
     clients() {
-      return Client.query().orderBy('name').all();
+      if (this.search === '') {
+        return Client.query().orderBy('name').all();
+      } else {
+        let val = this.search.toLowerCase();
+        return Client.query().where((client) => client.name.toLowerCase().indexOf(val) > -1).orderBy('name').all();
+      }
     }
   },
   methods: {
-    savePayerToClient () {
-      PayersToClients.api().post('http://localhost:5000/payers_to_clients', {
+    savePayerToClient() {
+      PayersToClients.api().post('payers_to_clients', {
         client_id: this.client.id,
         payer_id: this.payment.payer.id
       }).then((results) => {
@@ -50,19 +58,24 @@ export default {
         }
       });
       this.$emit('close');
-    }
+    },
+    filterFn(val, update) {
+      update(() => {
+        this.search = val;
+      })
+    },
   },
   beforeUpdate() {
-      if (this.payment && this.payment.payer.clients.length > 0) {
-        this.client = this.payment.payer.clients[0];
-        this.oldClient = this.payment.payer.clients[0];
-      } else {
-        this.client = null;
-        this.oldClient = null;
-      }
+    if (this.payment && this.payment.payer.clients.length > 0) {
+      this.client = this.payment.payer.clients[0];
+      this.oldClient = this.payment.payer.clients[0];
+    } else {
+      this.client = null;
+      this.oldClient = null;
+    }
   },
   mounted() {
-    Client.api().get('http://localhost:5000/clients');
+    Client.api().get('clients');
   }
 }
 </script>

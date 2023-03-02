@@ -42,7 +42,7 @@ export default {
   },
   methods: {
     saveGood() {
-      MessageOrder.api().post('http://localhost:5000/message_order', {
+      MessageOrder.api().post('message_order', {
         id: this.message_order_row.id,
         message_id: this.message_order_row.message_id,
         good_id: this.message_order_row.good.id,
@@ -52,7 +52,7 @@ export default {
       this.$emit('close');
     },
     getGoods() {
-      Goods.api().get('http://localhost:5000/goods');
+      Goods.api().get('goods');
     }
   },
   beforeUpdate() {
