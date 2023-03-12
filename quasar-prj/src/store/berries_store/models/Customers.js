@@ -3,6 +3,7 @@ import {Client, CustomersToClients} from "src/store/berries_store/models/index";
 
 export default class Customer extends Model {
   static entity = 'customers'
+    static primaryKey = 'id'
   static fields () {
     return {
       id: this.attr(null),

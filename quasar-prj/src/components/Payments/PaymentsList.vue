@@ -1,28 +1,47 @@
 <template>
-  <q-file v-model="file" label="Файл выписки"/>
-  <q-btn @click="fileUpload($event)">Загрузить выписку</q-btn>
-  <q-btn @click="parseNotify($event)">Разобрать уведомления</q-btn>
   <div>{{ upload_result }}</div>
-      <q-input
-        v-model="search"
-        debounce="1000"
-        filled
-        placeholder="Поиск"
-        hint="Поиск по карте, сумме, имени"
-      >
-        <template v-slot:append>
-          <q-icon name="search" />
-        </template>
-      </q-input>
+  <q-input v-model="beg_sum"
+           debounce="1000"
+           placeholder="Сумма на начало">
+  </q-input>
+  <q-input filled
+           v-model="start_date"
+           mask="date"
+           debounce="1000"
+           :rules="['date']">
+    <template v-slot:append>
+      <q-icon name="event" class="cursor-pointer">
+        <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+          <q-date v-model="start_date">
+            <div class="row items-center justify-end">
+              <q-btn v-close-popup label="Close" color="primary" flat/>
+            </div>
+          </q-date>
+        </q-popup-proxy>
+      </q-icon>
+    </template>
+  </q-input>
+  <q-input
+    v-model="search"
+    debounce="1000"
+    filled
+    placeholder="Поиск"
+    hint="Поиск по карте, сумме, имени"
+  >
+    <template v-slot:append>
+      <q-icon name="search"/>
+    </template>
+  </q-input>
   <q-list>
     <payment-c
-    v-for="item in payments"
-    :key="item.id"
-    :item="item"
-    v-ripple:red
-    clickable
-    @click="editPayer(item)"
-    :class="itemClass(item)"
+      v-for="item in payments"
+      :key="item.id"
+      :item="item"
+      v-ripple:red
+      clickable
+      @click="editPayer(item)"
+      :class="itemClass(item)"
+      :is-ost="!!beg_sum"
     >
     </payment-c>
   </q-list>
@@ -31,37 +50,52 @@
     <div class="page_number"> {{ page }}</div>
     <q-btn class="next_page" @click="page++; getPayments()">Next</q-btn>
   </div>
-<payer-to-client-dialog
-  :payment="payment"
-  v-model="dialog"
-  @close="dialog=false">
-</payer-to-client-dialog>
+  <payer-to-client-dialog
+    :payment="payment"
+    v-model="dialog"
+    @close="dialog=false">
+  </payer-to-client-dialog>
 </template>
 <script>
 
-import axios from 'axios';
 import PaymentItem from 'components/Payments/PaymentItem.vue'
 import Payment from "src/store/berries_store/models/Payments";
 import PayerToClientDialog from "components/Payments/PayerToClientDialog.vue";
 
-const path = 'http://192.168.4.160:5000';
-
 export default {
   name: 'PaymentsList',
   data: () => ({
-    file: null,
     payment: null,
     dialog: false,
     upload_result: '',
+    beg_sum: '',
+    start_date_: '',
     src: '',
     page: 1,
-    page_size: 10
+    page_size: 25
   }),
-  computed:{
-    payments () {
-        return Payment.query().with('payer').with('payer.clients').all();
+  computed: {
+    start_date: {
+      get() {
+        return this.start_date_
+      },
+      set (val) {
+        this.start_date_ = val;
+        this.getPayments();
+      }
     },
-    search:{
+    payments() {
+      let query = Payment.query();
+      let payments = query.with('payer').with('payer.clients').orderBy('timestamp', 'desc').all();
+      let ost = parseFloat(this.beg_sum);
+      payments = payments.map((payment) => {
+        let data = payment.$toJson();
+        data.ost = (data.ost) + ost;
+        return data;
+      })
+      return payments
+    },
+    search: {
       get() {
         return this.src;
       },
@@ -73,22 +107,28 @@ export default {
     }
   },
   components: {
-      'payment-c': PaymentItem,
+    'payment-c': PaymentItem,
     PayerToClientDialog
 
   },
   methods: {
     getPayments() {
-        let url = 'payments';
-        let params = '';
-        if (this.search)
-          params += `search=${this.src}`;
-        params += (params !== '' ? '&' : '') + `page=${this.page}`;
-        params += (params !== '' ? '&' : '') + `page_size=${this.page_size}`;
-        url += '?' + params;
-        Payment.api().get(url, { persistBy: 'create' });
+      let url = 'payments';
+      let params = '';
+      if (this.search)
+        params += `search=${this.src}`;
+      params += (params !== '' ? '&' : '') + `page=${this.page}`;
+      params += (params !== '' ? '&' : '') + `page_size=${this.page_size}`;
+      if (this.start_date_) {
+        params += (params !== '' ? '&' : '') + `start_date=${this.start_date_}`;
+      }
+      if (this.beg_sum) {
+        params += (params !== '' ? '&' : '') + `beg_sum=${this.beg_sum}`;
+      }
+      url += '?' + params;
+      Payment.api().get(url, {persistBy: 'create'});
     },
-    itemClass(item){
+    itemClass(item) {
       if (item.payer && item.payer.clients.length > 0) {
         return "bg-green-1";
       } else {
@@ -99,37 +139,6 @@ export default {
     editPayer(item) {
       this.payment = item;
       this.dialog = true;
-    },
-
-    parseNotify(evt) {
-      this.upload_result = '';
-      axios.get(path + '/parse_notify').then((data) => {
-        this.upload_result = data.data;
-      }).catch((error) => {
-        console.error(error);
-      });
-    },
-
-    fileUpload(file) {
-      this.upload_result = '';
-      const me = this;
-      const formData = new FormData();
-      formData.append('file', this.file);
-      axios.post(path + '/file_save',
-        formData,
-        {
-          headers: {
-            'Content-Type': 'multipart/form-data'
-          }
-        }
-      ).then(function (data) {
-        me.upload_result = data.data;
-        this.file = null;
-        console.log(data.data);
-      })
-        .catch(function (err) {
-          console.log('FAILURE!!' + err);
-        });
     },
   },
   mounted() {
@@ -144,6 +153,7 @@ export default {
   display: flex;
   flex-wrap: wrap;
 }
+
 .page_number {
   padding: 10px;
 }

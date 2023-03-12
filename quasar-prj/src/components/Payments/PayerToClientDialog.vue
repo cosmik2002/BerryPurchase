@@ -25,7 +25,7 @@
 </template>
 
 <script>
-import Client from "src/store/berries_store/models/Clients";
+import {Client} from "src/store/berries_store/models";
 import PayersToClients from "../../store/berries_store/models/PayersToClients";
 
 export default {

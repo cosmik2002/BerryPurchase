@@ -2,8 +2,8 @@ import marshmallow
 import marshmallow_sqlalchemy.schema
 import simplejson as simplejson
 from marshmallow_sqlalchemy import fields, auto_field
-from sqlalchemy import func, Column, Integer, String, ForeignKey, LargeBinary, Numeric, DateTime, Time, Text, Table
-from sqlalchemy.dialects.postgresql import JSONB, ARRAY
+from sqlalchemy import func, Column, Integer, String, ForeignKey, LargeBinary, Numeric, DateTime, Time, Text, Table, \
+    JSON
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship, configure_mappers, column_property
 
@@ -41,13 +41,14 @@ class Goods(Base):
 
 payers_to_clients = Table('payers_to_clients',
                           Base.metadata,
-                          Column('payer_id',Integer, ForeignKey('payers.id'), primary_key=True),
-                          Column('client_id',Integer, ForeignKey('clients.id'), primary_key=True))
+                          Column('payer_id', Integer, ForeignKey('payers.id'), primary_key=True),
+                          Column('client_id', Integer, ForeignKey('clients.id'), primary_key=True))
 
 customers_to_clients = Table('customers_to_clients',
                              Base.metadata,
-                             Column('customer_id',Integer, ForeignKey('customers.id'), primary_key=True),
-                             Column('client_id',Integer, ForeignKey('clients.id'), primary_key=True))
+                             Column('customer_id', Integer, ForeignKey('customers.id'), primary_key=True),
+                             Column('client_id', Integer, ForeignKey('clients.id'), primary_key=True))
+
 
 class Customers(Base):
     __tablename__ = "customers"
@@ -87,13 +88,13 @@ class Messages(Base):
     timestamp: Column = Column(DateTime, nullable=False)
     text: Column = Column(Text)
     customer = relationship(Customers, foreign_keys=customer_id)
+
     @hybrid_property
     def order_descr(self):
         descr = ''
         for row in self.message_order:
-            descr += f"{row.good.name}-{row.quantity:.2f}; "
+            descr += f"{row.good.name}-{row.quantity or 0:.2f}; "
         return descr
-
 
 
 class Payments(Base):
@@ -105,7 +106,8 @@ class Payments(Base):
     timestamp: Column = Column(DateTime, index=True)
     date_processed: Column = Column(DateTime)
     comment: Column = Column(Text)
-    sum: Column = Column(Numeric)
+    sum: Column = Column(Numeric(15,2))
+    ost = column_property(func.sum(sum).over(order_by=timestamp))
     payer = relationship(Payers, foreign_keys=payer_id)
 
 
@@ -114,13 +116,24 @@ class MessageOrders(Base):
     id: Column = Column(Integer, primary_key=True)
     message_id: Column = Column(Integer, ForeignKey(Messages.id), index=True)
     good_id: Column = Column(Integer, ForeignKey(Goods.id), index=True)
-    quantity: Column = Column(Numeric)
-    price: Column = Column(Numeric)
+    quantity: Column = Column(Numeric(15,2))
+    price: Column = Column(Numeric(15,2))
     good = relationship(Goods, foreign_keys=good_id)
     message = relationship(Messages, foreign_keys=message_id, backref='message_order')
 
-#https://stackoverflow.com/questions/75457741/dynamically-generating-marshmallow-schemas-for-sqlalchemy-fails-on-column-attrib
+
+class Settings(Base):
+    __tablename__ = 'settings'
+    START_DATE = 'start_date'
+    SHEET_NAME = 'sheet_name'
+    id: Column = Column(Integer, primary_key=True)
+    name: Column = Column(Text)
+    value: Column = Column(JSON)
+
+
+# https://stackoverflow.com/questions/75457741/dynamically-generating-marshmallow-schemas-for-sqlalchemy-fails-on-column-attrib
 configure_mappers()
+
 
 class ClientsSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
@@ -128,6 +141,7 @@ class ClientsSchema(ma.SQLAlchemyAutoSchema):
         include_fk = True
         # include_relationships = True
         load_instance = True
+
     payers = fields.Nested('PayersSchema', many=True)
     customers = fields.Nested('CustomersSchema', many=True)
 
@@ -138,7 +152,9 @@ class CustomersSchema(ma.SQLAlchemyAutoSchema):
         include_fk = True
         # include_relationships = True
         load_instance = True
+
     clients = fields.Nested(ClientsSchema(exclude=('customers', 'payers')), many=True)
+
 
 class PayersSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
@@ -146,7 +162,8 @@ class PayersSchema(ma.SQLAlchemyAutoSchema):
         include_fk = True
         # include_relationships = True
         load_instance = True
-    clients = fields.Nested(ClientsSchema(exclude=('payers','customers')), many=True)
+
+    clients = fields.Nested(ClientsSchema(exclude=('payers', 'customers')), many=True)
 
 
 class PaymentsSchema(ma.SQLAlchemyAutoSchema):
@@ -154,8 +171,9 @@ class PaymentsSchema(ma.SQLAlchemyAutoSchema):
         model = Payments
         include_fk = True
         # include_relationships = True
+        json_module = simplejson
         load_instance = True
-
+    # ost = marshmallow.fields.Decimal()
     payer = fields.Nested(PayersSchema())
 
 
@@ -165,6 +183,7 @@ class MessagesSchema(ma.SQLAlchemyAutoSchema):
         include_fk = True
         include_relationships = True
         load_instance = True
+
     order_descr = marshmallow.fields.Str()
     customer = fields.Nested(CustomersSchema())
     message_order = fields.Nested('MessageOrdersSchema', many=True)
@@ -177,6 +196,7 @@ class GoodsSchema(ma.SQLAlchemyAutoSchema):
         # include_relationships = True
         load_instance = True
 
+
 class MessageOrdersSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = MessageOrders
@@ -184,14 +204,23 @@ class MessageOrdersSchema(ma.SQLAlchemyAutoSchema):
         include_fk = True
         include_relationships = True
         load_instance = True
+
     # message = fields.Nested(MessagesSchema(exclude=('message_order',)))
     good = fields.Nested(GoodsSchema())
+
 
 class ClientsLinksSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = ClientsLinks
         include_fk = True
         load_instance = True
+
     customer = fields.Nested(CustomersSchema())
     client = fields.Nested(ClientsSchema())
     payer = fields.Nested(PayersSchema())
+
+
+class SettingsSchema(ma.SQLAlchemyAutoSchema):
+    class Meta:
+        model = Settings
+        load_instance = True

@@ -12,10 +12,8 @@
         />
 
         <q-toolbar-title>
-          Quasar App
+          Ягодный сбор
         </q-toolbar-title>
-
-        <div>Quasar v{{ $q.version }}</div>
       </q-toolbar>
     </q-header>
 
@@ -28,7 +26,7 @@
         <q-item-label
           header
         >
-          Essential Links
+          Разделы
         </q-item-label>
 
         <EssentialLink
@@ -39,8 +37,8 @@
       </q-list>
     </q-drawer>
 
-    <q-page-container>
-      <router-view />
+    <q-page-container style="max-width:1000px">
+      <router-view/>
     </q-page-container>
   </q-layout>
 </template>
@@ -53,12 +51,12 @@ const linksList = [
   {
     title: 'Сообщения',
     caption: 'Messages',
-    icon: 'school',
+    icon: 'list',
     link: '/messages'
   },
   {
     title: 'Payments',
-    icon: 'chat',
+    icon: 'credit_card',
     link: '/payments'
   },
   {
@@ -67,8 +65,13 @@ const linksList = [
     link: '/clients'
   },
   {
+    title: 'Settings',
+    icon: 'settings',
+    link: '/settings'
+  },
+  {
     title: 'store',
-    icon: 'record_voice_over',
+    icon: 'gavel',
     link: '/store'
   }
 ]

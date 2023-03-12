@@ -1,6 +1,4 @@
 <template>
-  <q-btn @click="startWaClient()">Запустить Watsapp</q-btn>
-  <q-btn @click="loadMessages()">Load Messages</q-btn>
   <q-checkbox v-model="hide_orders">Hide orders</q-checkbox>
   <div>{{ result }}</div>
   <q-list separator>
@@ -12,10 +10,16 @@
 
     </wa-message>
   </q-list>
+    <div class="pagination">
+    <q-btn class="parev_page" v-if="page>1" @click="page--; getMessages()">Prev</q-btn>
+    <div class="page_number"> {{ page }}</div>
+    <q-btn class="next_page" @click="page++; getMessages()">Next</q-btn>
+  </div>
+
   <customer-to-client-dialog v-model="customer_to_client_dialog" :message="message"
                              @close="customer_to_client_dialog=false"></customer-to-client-dialog>
 
-  <message-order-dialog v-model="message_order_dialog" :message="message" @close="message_order_dialog=false"/>
+  <message-order-dialog v-model="message_order_dialog" :message="message" @close="closeMessageOrderDialog(message)"/>
 </template>
 <script>
 
@@ -25,7 +29,7 @@ import CustomerToClientDialog from "components/Messages/CustomerToClientDialog.v
 import MessageOrderDialog from "components/Messages/MessageOrderDialog.vue";
 import {Message} from "src/store/berries_store/models";
 
-const path = 'http://192.168.4.160:5000';
+const path = process.env.API_URL;
 
 export default {
   name: 'MessagesList',
@@ -68,19 +72,9 @@ export default {
       this.message = item;
       this.message_order_dialog = true;
     },
-    startWaClient() {
-      axios.get(path + '/start_wa_client').then((res) => {
-        this.result = res.data;
-      }).catch((error) => {
-        console.error(error);
-      });
-    },
-    loadMessages() {
-      axios.get(path + '/load_messages').then((res) => {
-        this.result = res.data;
-      }).catch((error) => {
-        console.error(error);
-      });
+    closeMessageOrderDialog(item) {
+      Message.api().get('messages/'+item.id);
+      this.message_order_dialog = false;
     },
     getMessages() {
       let url = 'messages';

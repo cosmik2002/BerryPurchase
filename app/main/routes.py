@@ -13,7 +13,7 @@ from database import Session
 from app.wa_messages import get_messages, get_clients_links, load_customers, load_payers, load_clients, load_goods, \
     get_message_order
 from app.models import ClientsLinks, ClientsLinksSchema, payers_to_clients, Payers, Clients, Customers, \
-    MessageOrdersSchema
+    MessageOrdersSchema, SettingsSchema, Settings
 
 # session = Session()
 wa: Optional[WhatsApp] = None
@@ -103,10 +103,20 @@ def goods():
 
 @bp.route('/payments', methods=['GET'])
 def payments():
-    src = request.args.get('search')
     page = request.args.get('page', type=int)
     page_size = request.args.get('page_size', type=int)
-    return PaymentsProcessor().get_payments(current_app.session, page, page_size, src)
+    search_options = {
+        'src': request.args.get('search'),
+        'start_date': request.args.get('start_date'),
+        'beg_sum': request.args.get('beg_sum')
+    }
+    return PaymentsProcessor().get_payments(current_app.session, page, page_size, search_options)
+
+
+@bp.route('/fill_payments', methods=['GET'])
+def fill_payments():
+    gSheets(session=current_app.session).fill_payments()
+    return ''
 
 
 @bp.route('/payers_to_clients', methods=['POST'])
@@ -154,3 +164,23 @@ def clients_link():
         return response_object
     else:
         return get_clients_links(current_app.session)
+
+@bp.route('/settings', methods=['GET', 'POST'])
+@bp.route('/settings/<id>', methods=["DELETE"])
+def settings(id=None):
+    if request.method == 'DELETE':
+        setting = current_app.session.query(Settings).filter(Settings.id == id)
+        setting.delete()
+        current_app.session.commit()
+    if request.method == 'POST':
+        data = request.get_json()
+        if data.get('id'):
+            load_data = SettingsSchema().load(data, session=current_app.session, instance=current_app.session.query(Settings).get(data['id']))
+        else:
+            load_data = SettingsSchema().load(data, session=current_app.session)
+        current_app.session.commit()
+        return load_data
+    else:
+        settings = current_app.session.query(Settings).all()
+        output = SettingsSchema(many=True).dump(settings)
+        return output

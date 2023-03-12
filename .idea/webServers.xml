@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="WebServers">
+    <option name="servers">
+      <webServer id="befd3ead-0a22-45d9-a4fe-aa5bdeef9ca2" name="mini_dacha" url="http://192.168.4.43">
+        <fileTransfer rootFolder="/home/nicholas/berries" accessType="SFTP" host="192.168.4.143" port="22" sshConfigId="c6f1855e-a07c-4baa-9937-6705d3e5b11d" sshConfig="nicholas@192.168.4.143:22 password">
+          <advancedOptions>
+            <advancedOptions dataProtectionLevel="Private" keepAliveTimeout="0" passiveMode="true" shareSSLContext="true" />
+          </advancedOptions>
+        </fileTransfer>
+      </webServer>
+    </option>
+  </component>
+</project>

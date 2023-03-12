@@ -26,7 +26,7 @@ def get_messages(session, message_id, search_options, page, page_size):
                 query = query.offset((page-1) * page_size)
         messages = query.all()
         # messages = session.query(Messages).order_by(Messages.timestamp.desc()).all()
-        messages_schema = MessagesSchema(many=True, exclude=('message_order', ))
+        messages_schema = MessagesSchema(many=True, exclude=('message_order',))
     output = messages_schema.dump(messages)
     return output
 

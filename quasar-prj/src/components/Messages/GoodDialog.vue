@@ -2,6 +2,18 @@
   <q-dialog>
     <q-card>
       <q-card-section>
+        <q-list>
+          <good-item v-for="good in goods"
+                     :key="good.id"
+                     :good="good">
+
+          </good-item>
+        </q-list>
+        <div class="pagination">
+          <div v-if="page>0" @click="page--" style="cursor: pointer">prev</div>
+          <div>{{page}}</div>
+          <div @click="page++" style="cursor: pointer">next</div>
+        </div>
         <q-select
           v-model="message_order_row.good"
           :options="goods"
@@ -22,7 +34,7 @@
 
 <script>
 import {Goods, MessageOrder} from "src/store/berries_store/models";
-
+import GoodItem from "components/Messages/GoodItem.vue";
 export default {
   name: "GoodDialog",
   props: {
@@ -33,11 +45,16 @@ export default {
   emits: ['close'],
   data: () => ({
     message_order_row: {
-    }
+    },
+    page: 1,
+    page_size: 5
   }),
+  components:{
+    GoodItem
+  },
   computed: {
     goods() {
-      return Goods.query().all();
+      return Goods.query().limit(this.page_size).offset(this.page).all();
     }
   },
   methods: {
@@ -63,5 +80,9 @@ export default {
 </script>
 
 <style scoped>
+.pagination {
+  display: flex;
+  flex-wrap: wrap;
+}
 
 </style>

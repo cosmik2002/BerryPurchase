@@ -7,7 +7,7 @@
       <q-item-label>{{ item.customer.push_name }}</q-item-label>
       <q-item-label> {{ item.text }}</q-item-label>
       <q-item-label>
-        <q-btn round color="red" icon="local_grocery_store" @click="$emit('show_message_order_dialog', item)"></q-btn>
+        <q-btn round :color="item.order_descr == '' ? 'red' : 'green'" icon="local_grocery_store" @click="$emit('show_message_order_dialog', item)"></q-btn>
         {{ item.order_descr }}
       </q-item-label>
     </q-item-section>

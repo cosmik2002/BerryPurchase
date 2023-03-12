@@ -22,7 +22,9 @@ class ReadSberStatementPdf:
         return result
 
     def parse_tables(self, filename):
-        tables = camelot.read_pdf(filename, pages='1-end', flavor='stream')
+        #edge_tol вертикальное расстояние между строк (default=50)
+        # когда выписка заканчивается на стр. с реквизитами, чтобы не сливал в одну таблицк
+        tables = camelot.read_pdf(filename, pages='1-end', flavor='stream', edge_tol=40)
         result = pd.DataFrame()
         for table in tables:
             result = pd.concat([result, table.df])

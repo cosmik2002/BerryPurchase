@@ -1,9 +1,10 @@
 import { Model } from '@vuex-orm/core'
-import Customer from "src/store/berries_store/models/Customers";
+import {Customer} from "src/store/berries_store/models";
 import MessageOrder from "src/store/berries_store/models/MessageOrders";
 
 export default class Message extends Model {
   static entity = 'messages'
+    static primaryKey = 'id'
   static fields () {
     return {
       id: this.attr(null),

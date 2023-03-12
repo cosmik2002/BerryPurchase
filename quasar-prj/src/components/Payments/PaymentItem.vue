@@ -5,9 +5,13 @@
           <div>Плательщик: {{ item.payer.name }}</div>
           <div>Карта: {{ item.payer.card_number }}</div>
         </q-item-label>
-        <q-item-label>{{ item.timestamp }} {{ item.sum }} {{ item.operation_code }}{{ item.sms_id }} {{
-            item.comment
-          }}
+        <q-item-label> {{ new Date(item.timestamp).toLocaleDateString() }}
+        </q-item-label>
+        <q-item-label>
+          Сумма: {{ item.sum }} <span v-if="isOst">Остаток: {{item.ost}}</span>
+        </q-item-label>
+        <q-item-label>
+          {{ item.comment }}
         </q-item-label>
       </q-item-section>
       <q-item-section side top>
@@ -22,7 +26,7 @@
 <script>
 export default {
   name: "PaymentItem",
-  props: ['item'],
+  props: ['item', 'isOst'],
   methods: {
         itemClass(item){
       if (item.payer && item.payer.clients.length > 0) {

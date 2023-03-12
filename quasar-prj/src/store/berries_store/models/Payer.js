@@ -1,9 +1,9 @@
 import { Model } from '@vuex-orm/core'
-import PayersToClients from "src/store/berries_store/models/PayersToClients";
-import {Client} from "src/store/berries_store/models/index";
+import {Client, PayersToClients} from "src/store/berries_store/models/index";
 
 export default class Payer extends Model {
   static entity = 'payers'
+  static primaryKey = 'id'
   static fields () {
     return {
       id: this.attr(null),

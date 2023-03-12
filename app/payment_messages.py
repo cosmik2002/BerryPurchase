@@ -3,13 +3,15 @@ import re
 from collections import namedtuple
 from typing import List
 
+from flask import current_app
 from pandas import DataFrame
-from sqlalchemy import or_
+from sqlalchemy import or_, func
+from sqlalchemy.orm import Query
 from tqdm import tqdm
 from app.pdf_read import ReadSberStatementPdf
 from database import SessionRemote, Session
 from app.models import smsMsg, Payments, Payers, PaymentsSchema
-import datetime as dt
+from datetime import datetime as dt
 
 PayerData = namedtuple('PayerData', 'name card_number text')
 
@@ -20,6 +22,7 @@ def is_number(s):
         return True
     except ValueError:
         return False
+
 
 class PaymentsProcessor:
 
@@ -33,7 +36,7 @@ class PaymentsProcessor:
         msg = msg.lstrip()
         if msg.startswith('[') and (
                 src := re.search('(\d{2}.\d{2}.\d{4}) в (\d{2}:\d{2})', msg[1:19])) is not None:
-            date = dt.datetime.strptime(f"{src.group(1)} {src.group(2)}", "%d.%m.%Y %H:%M")
+            date = dt.strptime(f"{src.group(1)} {src.group(2)}", "%d.%m.%Y %H:%M")
         pos = msg.lower().find('перевод')
         sender = ''
         value = 0
@@ -68,25 +71,35 @@ class PaymentsProcessor:
 
         return sender, value, date, bank
 
-    def get_payments(self, session, page, page_size, src):
-        query = session.query(Payments)
+    def get_payments(self, session, page, page_size, search_options):
+        query: Query = session.query(Payments)
+
+        src = search_options['src']
+        # if search_options['beg_sum']:
+            # query = query.add_columns(func.sum(Payments.sum).over(order_by=Payments.timestamp).label('ost'))
+
+        if search_options['start_date']:
+            start_date = dt.strptime(search_options['start_date'], '%Y/%m/%d')
+            query = query.filter(Payments.timestamp >= start_date)
         if src:
             query = query.join(Payers, isouter=True)
             query = query.filter(or_(Payers.card_number.like(f"%{src}%"), Payments.comment.like(f"%{src}%"),
-                             Payments.sum == src if is_number(src) else False))
+                                     Payments.sum == src if is_number(src) else False))
+        query = query.order_by(Payments.timestamp.desc())
         if page_size:
             query = query.limit(page_size)
             if page:
-                query = query.offset((page-1) * page_size)
+                query = query.offset((page - 1) * page_size)
         payments = query.all()
-        payments_schema = PaymentsSchema(many=True)
-        output = payments_schema.dump(payments)
+        payments_schema = PaymentsSchema(many=True, exclude=('payer.clients',))
+        output = payments_schema.dumps(payments)
         return output
 
     def find_and_update_payer(self, payer_data: PayerData):
         def check_payers(payers):
             if len(payers) > 1:
-                raise Exception(f"Too many payers {payer_data.name} {payer_data.card_number} {payer_data.text}")
+                current_app.logger.info(f"Too many payers {payer_data.name} {payer_data.card_number} {payer_data.text}")
+                return False
             payer = payers[0]
             if not payer.card_number and payer_data.card_number:
                 payer.card_number = payer_data.card_number
@@ -139,6 +152,9 @@ class PaymentsProcessor:
                 continue
             payer = self.find_and_update_payer(
                 PayerData(card_number=row.card_number, name=row.payer.upper(), text=row.name))
+            if not payer:
+                current_app.logger.info(f"payment skiped {row}")
+                continue
             start_date = row.date - datetime.timedelta(minutes=30)
             end_date = row.date + datetime.timedelta(minutes=30)
             payment: List[Payments] = self.session.query(Payments).filter(Payments.sum == row.summa,
@@ -172,7 +188,9 @@ class PaymentsProcessor:
             sender = sender.upper()
             if sender:
                 payer = self.find_and_update_payer(PayerData(name=sender, card_number=None, text=text))
-
+                if not payer:
+                    current_app.logger.info(f"payment skiped {id} {text} {date}")
+                    return
                 start_date = date - datetime.timedelta(minutes=30)
                 end_date = date + datetime.timedelta(minutes=30)
                 payment: List[Payments] = self.session.query(Payments).filter(Payments.sum == summa,
