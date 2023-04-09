@@ -47,7 +47,7 @@
 <script>
 import axios from "axios";
 
-const path = 'http://localhost:5000';
+const path = process.env.API_URL;
 export default {
   name: "ClientsLinks",
   data: () => ({

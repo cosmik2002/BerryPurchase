@@ -66,6 +66,7 @@ class Payers(Base):
     id: Column = Column(Integer, primary_key=True)
     name: Column = Column(Text, index=True)
     card_number: Column = Column(Text, index=True)
+    bank_name: Column = Column(Text, index=True)
     comments: Column = Column(Text)
     clients = relationship(Clients, secondary=payers_to_clients, back_populates="payers")
 
@@ -126,6 +127,7 @@ class Settings(Base):
     __tablename__ = 'settings'
     START_DATE = 'start_date'
     SHEET_NAME = 'sheet_name'
+    WA_CLIENT = 'wa_client'
     id: Column = Column(Integer, primary_key=True)
     name: Column = Column(Text)
     value: Column = Column(JSON)

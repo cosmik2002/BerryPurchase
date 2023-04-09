@@ -22,12 +22,13 @@ class ReadSberStatementPdf:
         return result
 
     def parse_tables(self, filename):
-        #edge_tol вертикальное расстояние между строк (default=50)
+        # edge_tol вертикальное расстояние между строк (default=50)
         # когда выписка заканчивается на стр. с реквизитами, чтобы не сливал в одну таблицк
         tables = camelot.read_pdf(filename, pages='1-end', flavor='stream', edge_tol=40)
         result = pd.DataFrame()
         for table in tables:
-            result = pd.concat([result, table.df])
+            if table.order == 1:
+                result = pd.concat([result, table.df])
         result = result.rename(columns={0: 'date_code', 1: 'name', 2: 'sum'})
         return result
 
@@ -49,12 +50,14 @@ class ReadSberStatementPdf:
                                                                     x.replace(',', '.').replace(u'\xa0', '')) * -1)
         # "SBOL перевод 4276****6624 Р. МАКСИМ ВАЛЕРЬЕВИЧ"
         tab['payer'] = tab[tab.index % 2 == 1]['name'].apply(
-            lambda x: (f"{r.group(2)} {r.group(3)} {r.group(1)}") if (r := re.search('(\w)\.\s(\w+)\s(\w+)$', x)) is not None else '')
+            lambda x: (f"{r.group(2)} {r.group(3)} {r.group(1)}") if (r := re.search('(\w)\.\s(\w+)\s(\w+)$',
+                                                                                     x)) is not None else '')
         # тут в лямбду передается Series из двух ячеек для группировки
         tab = tab.groupby(tab.index // 2).agg(lambda x: x.dropna().astype(str).str.cat(sep=','))
         tab['date'] = tab['date'].astype('datetime64')
         tab['date1'] = tab['date1'].astype('datetime64')
         return tab
+
 
 if __name__ == "__main__":
     ReadSberStatementPdf().read_and_parse_doc(r'..\Документ-2023-02-06-071313.pdf')

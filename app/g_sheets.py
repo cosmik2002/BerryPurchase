@@ -1,8 +1,11 @@
 import decimal
 import itertools
+import json
 from datetime import datetime as dt
 from typing import List
 
+import numpy as np
+import pandas as pd
 from tqdm import tqdm
 
 from app.models import Clients, Settings, Payments
@@ -20,6 +23,34 @@ def is_number(s):
 class gSheets:
     def __init__(self, session):
         self.session = session
+
+    def open_sheet(self):
+        sheet_name = self.session.query(Settings).filter(Settings.name==Settings.SHEET_NAME).one().value
+        client = pygsheets.authorize(service_file=r'lucid-access-99211-bd2544a973ad.json')
+        sh = client.open('Урбаны 2023')
+        wks: Worksheet = sh.worksheet('title',sheet_name)
+        return wks
+
+    def get_summary(self):
+        wks = self.open_sheet()
+        df = wks.get_as_df(start='A2')
+        df = df.replace('', None)
+        start_col=2 if df.values[0][1] is None else 1
+        clients = wks.get_values('A', 'A')
+        clients = list(itertools.chain.from_iterable(clients))
+        last_row = df[(df['имя'].values!=None)].index[-1] #name col last index
+        price_row = df.iloc[1, :].values
+        last_col = len(price_row[price_row != None])
+        # last_col = len(df.iloc[1, :][(df.iloc[1, :].values != None)]) #price row len
+        good_tr = df[2:last_row+1].melt(id_vars=['имя'], value_vars=df.columns[start_col:last_col])
+        #меняем , на .
+        good_tr = good_tr.replace(to_replace={'value':r','}, value={'value':'.'}, regex=True)
+        cli_itog = good_tr[good_tr['value'].astype('float') > 0].assign(res=lambda x: x['variable'].astype(str) + "-" + x['value'].astype('float').map('{:g}'.format)).groupby(
+            'имя').agg({'res': lambda x: ",".join(x)})
+        good_itog = df.iloc[2:last_row+1, start_col:last_col].replace(regex=',',value='.').astype('float').sum()
+        res = pd.concat([cli_itog, good_itog])
+        return res.to_json()
+
 
     def fill_payments(self):
         start_date = self.session.query(Settings).filter(Settings.name==Settings.START_DATE).one()

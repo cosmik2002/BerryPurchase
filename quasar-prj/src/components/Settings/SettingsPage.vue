@@ -2,6 +2,8 @@
     <q-btn @click="startWaClient()">Запустить Watsapp</q-btn>
   <q-btn @click="loadMessages()">Load Messages</q-btn>
   <q-btn @click="fillPayments">fillPayments</q-btn>
+  <q-btn @click="getSummary">getSummary</q-btn>
+    <q-btn @click="sockSend">sockSend</q-btn>
   <q-file v-model="file" label="Файл выписки"/>
   <q-btn @click="fileUpload($event)">Загрузить выписку</q-btn>
   <q-btn @click="parseNotify($event)">Разобрать уведомления</q-btn>
@@ -10,10 +12,22 @@
   <q-list>
     <setting-item v-for="item in settings" :key="item.id" :item="item"></setting-item>
   </q-list>
+  <div v-for="(val,key) in upload_result" :key=key>
+    <div v-if="key==='errors'">
+      <div v-for="(msg, index) in val" :key="index">
+        {{msg}}
+      </div>
+      </div>
+    <div v-else>
+    {{key}}:{{val}}
+      </div>
+  </div>
+  <itog-report :report_data="report"/>
 </template>
 
 <script>
 import SettingItem from "components/Settings/SettingItem.vue";
+import ItogReport from "components/Settings/ItogReport.vue";
 import {Setting} from "src/store/berries_store/models";
 import axios from "axios";
 
@@ -23,9 +37,13 @@ export default {
   name: "SettingsPage",
   data: () => ({
     file: null,
+    report: null,
+    socket: null,
+    upload_result: ''
   }),
   components: {
-    SettingItem
+    SettingItem,
+    ItogReport
   },
   computed: {
     settings() {
@@ -37,6 +55,14 @@ export default {
       this.upload_result = '';
       axios.get(path + '/parse_notify').then((data) => {
         this.upload_result = data.data;
+      }).catch((error) => {
+        console.error(error);
+      });
+    },
+    getSummary(evt) {
+      this.upload_result = '';
+      axios.get(path + '/get_summary').then((data) => {
+        this.report = data.data;
       }).catch((error) => {
         console.error(error);
       });
@@ -55,7 +81,7 @@ export default {
         }
       ).then(function (data) {
         me.upload_result = data.data;
-        this.file = null;
+        // me.file = null;
         console.log(data.data);
       })
         .catch(function (err) {
@@ -85,10 +111,20 @@ export default {
       }).catch((error) => {
         console.error(error);
       });
+    },
+    startWebSocket() {
+    this.socket = new WebSocket('ws://127.0.0.1:5000/echo');
+      this.socket.addEventListener('message', ev => {
+        console.log('<<< ' + ev.data);
+      });
+    },
+    sockSend() {
+      this.socket.send("ping");
     }
   },
   mounted() {
     this.getSettings();
+    this.startWebSocket();
   }
 }
 </script>

@@ -5,6 +5,7 @@ from typing import Optional
 
 from flask import request, current_app
 
+from app import wa, sock
 from app.g_sheets import gSheets
 from app.main import bp
 from app.payment_messages import PaymentsProcessor
@@ -15,13 +16,6 @@ from app.wa_messages import get_messages, get_clients_links, load_customers, loa
 from app.models import ClientsLinks, ClientsLinksSchema, payers_to_clients, Payers, Clients, Customers, \
     MessageOrdersSchema, SettingsSchema, Settings
 
-# session = Session()
-wa: Optional[WhatsApp] = None
-
-
-@bp.route('/', methods=['GET'])
-def index():
-    return "Hello World"
 
 
 @bp.route('/messages', methods=['GET'])
@@ -52,8 +46,7 @@ def message_order(message_id=None, message_order_id=None):
 
 @bp.route('/start_wa_client', methods=['GET'])
 def start_wa_client():
-    global wa
-    wa = WhatsApp(current_app.session)
+    print(wa)
     return "ok"
 
 
@@ -118,6 +111,10 @@ def fill_payments():
     gSheets(session=current_app.session).fill_payments()
     return ''
 
+@bp.route('/get_summary', methods=['GET'])
+def get_summary():
+    data = gSheets(session=current_app.session).get_summary()
+    return data
 
 @bp.route('/payers_to_clients', methods=['POST'])
 def payers_to_clients():
@@ -184,3 +181,15 @@ def settings(id=None):
         settings = current_app.session.query(Settings).all()
         output = SettingsSchema(many=True).dump(settings)
         return output
+
+@sock.route('/echo')
+def echo(ws):
+    c = 0
+    while True:
+        data = ws.receive()
+        c += 1
+        # if c % 10000 == 0:
+            # print(c)
+            # ws.send(c)
+        if data:
+            ws.send(data)

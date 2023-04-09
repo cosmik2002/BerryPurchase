@@ -1,4 +1,5 @@
 import json
+import threading
 import time
 from datetime import datetime
 from typing import List
@@ -7,17 +8,35 @@ from javascript import require, On
 
 import qrcode
 
-from app.models import Messages, Customers
+from app.models import Messages, Customers, Settings
 from database import Session
 
-#Обертка node <-> python
-#https://pypi.org/project/javascript/
-#https://github.com/extremeheat/JSPyBridge
-#Whatsapp-Web
-#https://github.com/pedroslopez/whatsapp-web.js
+
+# Обертка node <-> python
+# https://pypi.org/project/javascript/
+# https://github.com/extremeheat/JSPyBridge
+# Whatsapp-Web
+# https://github.com/pedroslopez/whatsapp-web.js
+
 
 class WhatsApp:
-    def __init__(self, session):
+    __instance = None
+
+    def __new__(cls):
+        if not hasattr(cls, 'instance'):
+            cls.__instance = super(WhatsApp, cls).__new__(cls)
+            cls.__instance.__initialized = False
+            print(threading.get_ident())
+        return cls.__instance
+
+    def init_app(self, app):
+        self.session = app.session
+        res = self.session.query(Settings).filter(Settings.name == Settings.WA_CLIENT).all()
+        if res and res[0].value:
+            return
+        self.session.add(Settings(name=Settings.WA_CLIENT, value=True))
+        self.session.commit()
+        return
         self.ready = False
         Client = require('whatsapp-web.js').Client
         LocalAuth = require('whatsapp-web.js').LocalAuth
@@ -49,10 +68,16 @@ class WhatsApp:
 
         self.client.initialize(timeout=1500)
 
+    def __init__(self):
+        if self.__initialized:
+            return
+        self.__initialized = True
+
+
     def read_messages(self):
         counters = {
             'new_messages': 0,
-            'new_customers':0,
+            'new_customers': 0,
             'success': False
         }
         if not self.ready:
