@@ -7,8 +7,13 @@
       <q-item-label>{{ item.customer.push_name }}</q-item-label>
       <q-item-label> {{ item.text }}</q-item-label>
       <q-item-label>
-        <q-btn round :color="item.order_descr == '' ? 'red' : 'green'" icon="local_grocery_store" @click="$emit('show_message_order_dialog', item)"></q-btn>
+        <q-btn round :color="item.order_descr === '' ? 'red' : 'green'" icon="local_grocery_store" @click="$emit('show_message_order_dialog', item)"></q-btn>
         {{ item.order_descr }}
+        <q-checkbox :model-value="item.props && item.props.empty || false"
+                    @update:model-value="updRow(item, {empty: $event})">
+        </q-checkbox>
+      </q-item-label>
+      <q-item-label>
       </q-item-label>
     </q-item-section>
     <q-item-section side top>
@@ -18,6 +23,8 @@
   </q-item>
 </template>
 <script>
+import {Message} from "src/store/berries_store/models";
+
 export default {
   name: "WaMessage",
   props: ['item'],
@@ -26,6 +33,11 @@ export default {
     customer_to_client_dialog: false,
   }),
   methods: {
+    updRow(row, data) {
+      let msg = {...this.item};
+      msg.props = msg.props ? {...msg.props,...data} : {...data};
+      Message.api().post('messages/'+this.item.id, msg);
+    },
     itemClass() {
       if (this.item.customer && this.item.customer.clients.length > 0) {
         return "bg-green-1";

@@ -1,6 +1,8 @@
 <template>
     <q-btn @click="startWaClient()">Запустить Watsapp</q-btn>
   <q-btn @click="loadMessages()">Load Messages</q-btn>
+  <q-btn @click="waLogout()">waLogout</q-btn>
+  <q-btn @click="waLogin()">waLogin</q-btn>
   <q-btn @click="fillPayments">fillPayments</q-btn>
   <q-btn @click="getSummary">getSummary</q-btn>
     <q-btn @click="sockSend">sockSend</q-btn>
@@ -23,6 +25,7 @@
       </div>
   </div>
   <itog-report :report_data="report"/>
+  <canvas height='320' width='480' id='canvas'></canvas>
 </template>
 
 <script>
@@ -30,6 +33,7 @@ import SettingItem from "components/Settings/SettingItem.vue";
 import ItogReport from "components/Settings/ItogReport.vue";
 import {Setting} from "src/store/berries_store/models";
 import axios from "axios";
+import QRCode from "qrcode";
 
 const path = process.env.API_URL;
 
@@ -92,22 +96,54 @@ export default {
       let url = 'settings';
       Setting.api().get(url, {persistBy: 'create'});
     },
+
     addRow() {
       Setting.insert({data: {name: '', value: ''}});
     },
+
     fillPayments() {
       axios.get(path + '/fill_payments')
     },
+waLogout() {
+      axios.get(path + '/wa_logout')
+},
+waLogin() {
+      axios.get(path + '/wa_login').then((res)=>{
+        this.subscribe();
+      });
+},
     startWaClient() {
       axios.get(path + '/start_wa_client').then((res) => {
         this.result = res.data;
+        this.subscribe();
       }).catch((error) => {
         console.error(error);
       });
     },
+
+    subscribe() {
+      axios.get(path + '/subscribe').then((res) => {
+        if (res.data.code) {
+          var canvas = document.getElementById('canvas')
+          QRCode.toCanvas(canvas, res.data.code, function (error) {
+            if (error) console.error(error)
+            console.log('success!');
+          });
+          return
+        }
+        console.log(res.data.status)
+        if (res.data.status) {
+          setTimeout(this.subscribe, 1000);
+        } else {
+          this.upload_result = {status: 'wa started'};
+        }
+      }).catch((error) => {
+        console.log(error);
+      });
+    },
     loadMessages() {
       axios.get(path + '/load_messages').then((res) => {
-        this.result = res.data;
+        this.upload_result=res.data;
       }).catch((error) => {
         console.error(error);
       });

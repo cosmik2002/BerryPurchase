@@ -1,6 +1,7 @@
 import marshmallow
 import marshmallow_sqlalchemy.schema
 import simplejson as simplejson
+from marshmallow import EXCLUDE
 from marshmallow_sqlalchemy import fields, auto_field
 from sqlalchemy import func, Column, Integer, String, ForeignKey, LargeBinary, Numeric, DateTime, Time, Text, Table, \
     JSON
@@ -28,6 +29,7 @@ class Clients(Base):
     __tablename__ = "clients"
     id: Column = Column(Integer, primary_key=True)
     name: Column = Column(Text)
+    duplicate_for: Column = Column(Integer, ForeignKey(id))
     payers = relationship("Payers", secondary="payers_to_clients", back_populates="clients")
     customers = relationship('Customers', secondary='customers_to_clients', back_populates='clients')
 
@@ -88,6 +90,7 @@ class Messages(Base):
     customer_id: Column = Column(Integer, ForeignKey(Customers.id), nullable=False)
     timestamp: Column = Column(DateTime, nullable=False)
     text: Column = Column(Text)
+    props: Column = Column(JSON)
     customer = relationship(Customers, foreign_keys=customer_id)
 
     @hybrid_property
@@ -96,6 +99,9 @@ class Messages(Base):
         for row in self.message_order:
             descr += f"{row.good.name}-{row.quantity or 0:.2f}; "
         return descr
+    @order_descr.setter
+    def order_descr(self, val):
+        pass
 
 
 class Payments(Base):
@@ -182,6 +188,7 @@ class PaymentsSchema(ma.SQLAlchemyAutoSchema):
 class MessagesSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = Messages
+        unknown = EXCLUDE
         include_fk = True
         include_relationships = True
         load_instance = True

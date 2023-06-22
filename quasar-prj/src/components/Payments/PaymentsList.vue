@@ -137,10 +137,8 @@ export default {
     },
 
     editPayer(item) {
-      if (item.payer_id) {
-        this.payment = item;
-        this.dialog = true;
-      }
+      this.payment = item;
+      this.dialog = true;
     },
   },
   mounted() {

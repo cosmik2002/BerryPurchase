@@ -6,7 +6,7 @@ from logging.handlers import RotatingFileHandler
 from flask import Flask, _app_ctx_stack
 from flask_cors import CORS
 from flask_marshmallow import Marshmallow
-from flask_dotenv import DotEnv
+#from flask_dotenv import DotEnv
 # from flask_sqlalchemy import SQLAlchemy
 # from app import routes, models
 # configuration
@@ -20,7 +20,7 @@ from database import Session, SessionLocal
 DEBUG = True
 ma = Marshmallow()
 # db = SQLAlchemy()
-env = DotEnv()
+#env = DotEnv()
 wa = WhatsApp()
 sock = Sock()
 
@@ -28,7 +28,7 @@ def create_app(config_class=Config):
     # instantiate the app
     app = Flask(__name__)
     app.config.from_object(Config)
-    env.init_app(app)
+    #env.init_app(app)
     sock.init_app(app)
     app.logger.setLevel(logging.INFO)
     if not os.path.exists('logs'):

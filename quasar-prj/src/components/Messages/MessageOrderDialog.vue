@@ -8,11 +8,13 @@
         <q-table
           :columns="columns"
           :rows="message_order"
+          wrap-cells
           row-key="id"
         >
 
           <template v-slot:top>
             <q-btn icon="add" @click="showAddGood"></q-btn>
+            <q-btn icon="clear" @click="clearOrder"></q-btn>
           </template>
           <template v-slot:body="props">
             <q-tr :props="props">
@@ -50,29 +52,35 @@
 </template>
 
 <script>
-import {MessageOrder} from "src/store/berries_store/models";
+import {MessageOrder, Setting} from "src/store/berries_store/models";
 import GoodDialog from "components/Messages/GoodDialog.vue";
-
+import axios from "axios";
+import {api} from "boot/axios";
+const path = process.env.API_URL;
 export default {
   name: "MessageOrderDialog",
   props: {
     message: {},
+    try_to: {},
   },
   emits: ['close'],
   data: () => ({
+    try_to_guess: true,
     good_dialog: false,
     message_order_row: {},
-    columns: [{
+    columns: [/*{
       name: 'id',
       label: 'id',
-      field: 'id'
+      field: 'id',
+      visible: false
     }, {
       name: 'good_id',
       label: 'good_id',
       field: row => row.good.id
-    }, {
+    },*/ {
       name: 'good',
       label: 'good',
+      style: 'width: 200px',
       field: row => row.good.name
     }, {
       name: 'quantity',
@@ -104,23 +112,36 @@ export default {
       console.log(qty);
     },
     async showAddGood() {
-      this.message_order_row = {message_id: this.message.id};
+      this.message_order_row = {message_id: this.message.id, quantity: 1};
       this.good_dialog = true;
+    },
+    clearOrder(){
+      api.get('clear_message_order/'+this.message.id).then((res) => {
+        MessageOrder.deleteAll();
+      });
+      // MessageOrder.api().delete('message_order/' + this.message.id,{delete:})
     },
     async editGood(item, index) {
       this.message_order_row = item;
       this.good_dialog = true;
     },
     deleteGood(row) {
+      MessageOrder.api().delete("message_order/" + this.message.id + "/" + row.id, {delete: row.id});
       console.log("delete " + row);
     },
     getMessageOrder() {
-      MessageOrder.api().get('message_order/' + this.message.id, {persistBy: 'create'})
+      //todo разобраться как запустить по др. точке при открытии диалога
+      if (this.try_to_guess){
+       this.try_to_guess = false;
+        MessageOrder.api().get('message_order_try_to_guess/' + this.message.id, {persistBy: 'create'})
+      } else {
+        MessageOrder.api().get('message_order/' + this.message.id, {persistBy: 'create'})
+      }
     }
   },
   beforeUpdate() {
     this.getMessageOrder()
-    console.log("ok");
+    // console.log("ok");
   }
 }
 </script>

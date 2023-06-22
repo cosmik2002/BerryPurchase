@@ -87,7 +87,7 @@ class PaymentsProcessor:
             if page:
                 query = query.offset((page - 1) * page_size)
         payments = query.all()
-        payments_schema = PaymentsSchema(many=True, exclude=('payer.clients',))
+        payments_schema = PaymentsSchema(many=True, exclude=('payer',))
         output = payments_schema.dumps(payments)
         return output
 
@@ -249,8 +249,8 @@ class PaymentsProcessor:
                     self.counters['payments_update'] += 1
                     if not payment[0].sms_id:
                         payment[0].sms_id = id
-                    if isinstance(payer, Payers) and payer.name and payment[0].payer_id is None:
-                        payment[0].payer_id = payer.id
+                    if payer and payer[0].name and payment[0].payer_id is None:
+                        payment[0].payer_id = payer[0].id
                     if text not in payment[0].comment:
                         payment[0].comment = payment[0].comment + ";" + text
                     self.session.commit()

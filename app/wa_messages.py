@@ -1,6 +1,9 @@
 import json
+import re
 from datetime import datetime
-from sqlalchemy import or_
+from typing import List
+
+from sqlalchemy import not_, or_, Boolean
 
 import PySimpleGUI as sg
 
@@ -19,7 +22,12 @@ def get_messages(session, message_id, search_options, page, page_size):
             query = query.filter(Messages.text.like(f"{search_options}"))
         if search_options['has_order']:
             query = query.join(MessageOrders)
-        query = query.order_by(Messages.timestamp.desc())
+        if search_options['hide_empty']:
+            query = query.filter(or_(Messages.props['empty'].as_string().cast(Boolean) == False, not_(Messages.props['empty'])))
+        if search_options['start_date']:
+            query = query.filter(Messages.timestamp >= search_options['start_date'])
+        # query = query.order_by(Messages.timestamp.desc())
+        query = query.order_by(Messages.timestamp)
         if page_size:
             query = query.limit(page_size)
             if page:
@@ -36,11 +44,27 @@ def get_message_order(session, message_id, message_order_id):
         message_order_schema = MessageOrdersSchema()
     else:
         message_order = session.query(MessageOrders).filter(MessageOrders.message_id == message_id).all()
+        # if not message_order:
+            # message_order = try_to_guess(session, message_id)
         message_order_schema = MessageOrdersSchema(many=True)
     output = message_order_schema.dumps(message_order)
     return output
 
 
+def try_to_guess(session, message_id):
+    message: Messages = session.query(Messages).filter(Messages.id == message_id).one()
+    goods: List[Goods] = session.query(Goods).all()
+    found = []
+    for good in goods:
+        if message.text and any(word in message.text.lower()
+                                for word in (good.variants.split(';') if good.variants else good.name.split(' ')) if len(word) > 2):
+            found.append(good.id)
+    if found:
+        for good in found:
+           session.add(MessageOrders(message_id=message_id, good_id=good, quantity=1))
+        session.commit()
+        return session.query(MessageOrders).filter(MessageOrders.message_id == message_id).all()
+    return []
 def load_clients(session):
     clients = session.query(Clients).order_by('name').all()
     clients_schema = ClientsSchema(many=True)

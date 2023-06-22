@@ -1,5 +1,6 @@
 <template>
   <q-checkbox v-model="hide_orders">Hide orders</q-checkbox>
+  <q-checkbox v-model="hide_empty">Hide empty</q-checkbox>
   <div>{{ result }}</div>
   <q-list separator>
     <wa-message v-for="item in messages"
@@ -19,7 +20,7 @@
   <customer-to-client-dialog v-model="customer_to_client_dialog" :message="message"
                              @close="customer_to_client_dialog=false"></customer-to-client-dialog>
 
-  <message-order-dialog v-model="message_order_dialog" :message="message" @close="closeMessageOrderDialog(message)"/>
+  <message-order-dialog v-model="message_order_dialog" :message="message" try-to @close="closeMessageOrderDialog(message)"/>
 </template>
 <script>
 
@@ -36,6 +37,7 @@ export default {
   data: () => ({
     message: null,
     hide_o: false,
+    hide_e: false,
     customer_to_client_dialog: false,
     message_order_dialog: false,
     result: {},
@@ -50,6 +52,15 @@ export default {
     MessageOrderDialog
   },
   computed: {
+    hide_empty: {
+      get() {
+        return this.hide_e;
+      },
+      set(val) {
+        this.hide_e = val;
+        this.getMessages()
+      }
+    },
     hide_orders: {
       get() {
         return this.hide_o;
@@ -60,7 +71,7 @@ export default {
       }
     },
     messages() {
-      return Message.query().with('customer').with('customer.clients').orderBy('timestamp', 'desc').all();
+      return Message.query().with('customer').with('customer.clients').all();
     }
   },
   methods: {
@@ -83,6 +94,8 @@ export default {
         params += `search=${this.search}`;
       if (this.has_order)
         params += (params !== '' ? '&' : '') + `has_order=1`;
+      if (this.hide_e)
+        params += (params !== '' ? '&' : '') + `hide_empty=1`;
       params += (params !== '' ? '&' : '') + `page=${this.page}`;
       params += (params !== '' ? '&' : '') + `page_size=${this.page_size}`;
       url += '?' + params;

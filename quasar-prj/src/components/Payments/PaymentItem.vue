@@ -1,6 +1,7 @@
 <template>
     <q-item >
       <q-item-section >
+        {{ item.id }}
         <q-item-label v-if="item.payer">
           <div>Плательщик: {{ item.payer.name }}</div>
           <div>Карта: {{ item.payer.card_number }}</div>
