@@ -63,37 +63,23 @@ class gSheets:
         client = pygsheets.authorize(service_file=r'lucid-access-99211-bd2544a973ad.json')
         sh = client.open('Урбаны 2023')
         wks: Worksheet = sh.worksheet('title', sheet_name)
-        mtd = wks.get_developer_metadata()
         rng = wks.get_values('2', '2')
         last_col = len(rng[0])
         clients = wks.get_values('A', 'A')
-        clients = list(itertools.chain.from_iterable(clients))
+        clients = list(itertools.chain.from_iterable(clients)) #делаем список из списка списков
         last_row = len(clients)
-        # wks.update_values((last_row,last_row), None)
-        # vals = wks.get_values((1, last_row), (last_col, last_row))
-        wks.clear((1, last_col), (last_row, last_col))
-        # wks.clear((1, last_col+1), (last_row+5, last_col+1))
-        # wks.clear((1, 52), (last_col, 52))
-        unknown_payments_row = last_row+3
-        #values = [['', ''] for x in range(1, last_row)]
+        values = [['', float(0)] for x in range(1, last_row+1)]
         for payment in tqdm(payments):
             if not payment.payer:
                 continue
             if payment.payer.clients:
                 if payment.payer.clients[0].name in clients:
                     i = clients.index(payment.payer.clients[0].name)
-                    val = wks.cell((i + 1, last_col)).value
-                    if is_number(val):
-                        val = decimal.Decimal(val) + payment.sum
-                    else:
-                        val = payment.sum
-                    wks.cell((i + 1, last_col)).set_value(f"{val:g}".replace('.', ','))
+                    values[i][1] += float(payment.sum)
                 else:
                     print(payment.id)
-                    wks.cell((unknown_payments_row, last_col)).set_value(str(payment.sum))
-                    wks.cell((unknown_payments_row, last_col-1)).set_value(payment.payer.clients[0].name)
-                    unknown_payments_row = unknown_payments_row + 1
-
+                    values.append([payment.payer.clients[0].name, float(payment.sum)])
+        wks.update_values((1, last_col), values)
 
     def get_clients(self):
         counters = {
