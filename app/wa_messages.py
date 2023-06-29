@@ -6,6 +6,7 @@ from typing import List
 from sqlalchemy import not_, or_, Boolean
 
 import PySimpleGUI as sg
+from sqlalchemy.orm import aliased
 
 from app.models import Customers, Messages, Goods, MessagesSchema, Clients, ClientsSchema, ClientsLinks, \
     ClientsLinksSchema, CustomersSchema, Payers, PayersSchema, GoodsSchema, MessageOrders, MessageOrdersSchema
@@ -15,7 +16,7 @@ def get_messages(session, message_id, search_options, page, page_size):
     query = session.query(Messages)
     if message_id:
         messages = query.get(message_id)
-        messages_schema = MessagesSchema(exclude=('message_order', ))
+        messages_schema = MessagesSchema(exclude=('message_order',))
     else:
         if search_options['src']:
             # query = query.join(Customers, isouter=True)
@@ -23,29 +24,35 @@ def get_messages(session, message_id, search_options, page, page_size):
         if search_options['has_order']:
             query = query.join(MessageOrders)
         if search_options['hide_empty']:
-            query = query.filter(or_(Messages.props['empty'].as_string().cast(Boolean) == False, not_(Messages.props['empty'])))
+            query = query.filter(
+                or_(Messages.props['empty'].as_string().cast(Boolean) == False, not_(Messages.props['empty'])))
         if search_options['start_date']:
             query = query.filter(Messages.timestamp >= search_options['start_date'])
         # query = query.order_by(Messages.timestamp.desc())
+
+        # quoted = aliased(Messages)
+        # query = query.join(quoted, Messages.props['quoted'].as_string() == quoted.wa_id).add_columns(quoted.text, quoted.id)
+
         query = query.order_by(Messages.timestamp)
         if page_size:
             query = query.limit(page_size)
             if page:
-                query = query.offset((page-1) * page_size)
+                query = query.offset((page - 1) * page_size)
         messages = query.all()
         # messages = session.query(Messages).order_by(Messages.timestamp.desc()).all()
         messages_schema = MessagesSchema(many=True, exclude=('message_order',))
     output = messages_schema.dump(messages)
     return output
 
-def get_message_order(session, message_id, message_order_id):
+
+def get_message_order(session, message_id, message_order_id, is_try_to_guess):
     if message_order_id:
         message_order = session.query(MessageOrders).get(message_order_id)
         message_order_schema = MessageOrdersSchema()
     else:
         message_order = session.query(MessageOrders).filter(MessageOrders.message_id == message_id).all()
-        # if not message_order:
-            # message_order = try_to_guess(session, message_id)
+        if is_try_to_guess and not message_order:
+            message_order = try_to_guess(session, message_id)
         message_order_schema = MessageOrdersSchema(many=True)
     output = message_order_schema.dumps(message_order)
     return output
@@ -56,15 +63,19 @@ def try_to_guess(session, message_id):
     goods: List[Goods] = session.query(Goods).all()
     found = []
     for good in goods:
-        if message.text and any(word in message.text.lower()
-                                for word in (good.variants.split(';') if good.variants else good.name.split(' ')) if len(word) > 2):
+        if good.active and message.text and any(word in message.text.lower()
+                                                for word in (
+                                                good.variants.split(';') if good.variants else good.name.lower().split(
+                                                    ' ')) if len(word) > 2):
             found.append(good.id)
     if found:
         for good in found:
-           session.add(MessageOrders(message_id=message_id, good_id=good, quantity=1))
+            session.add(MessageOrders(message_id=message_id, good_id=good, quantity=1))
         session.commit()
         return session.query(MessageOrders).filter(MessageOrders.message_id == message_id).all()
     return []
+
+
 def load_clients(session):
     clients = session.query(Clients).order_by('name').all()
     clients_schema = ClientsSchema(many=True)
@@ -91,6 +102,7 @@ def load_goods(session):
     goods_schema = GoodsSchema(many=True)
     output = goods_schema.dump(goods)
     return output
+
 
 def get_clients_links(session):
     clients_links = session.query(ClientsLinks).all()

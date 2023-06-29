@@ -72,8 +72,13 @@ class gSheets:
         # wks.update_values((last_row,last_row), None)
         # vals = wks.get_values((1, last_row), (last_col, last_row))
         wks.clear((1, last_col), (last_row, last_col))
+        # wks.clear((1, last_col+1), (last_row+5, last_col+1))
         # wks.clear((1, 52), (last_col, 52))
+        unknown_payments_row = last_row+3
+        #values = [['', ''] for x in range(1, last_row)]
         for payment in tqdm(payments):
+            if not payment.payer:
+                continue
             if payment.payer.clients:
                 if payment.payer.clients[0].name in clients:
                     i = clients.index(payment.payer.clients[0].name)
@@ -83,6 +88,12 @@ class gSheets:
                     else:
                         val = payment.sum
                     wks.cell((i + 1, last_col)).set_value(f"{val:g}".replace('.', ','))
+                else:
+                    print(payment.id)
+                    wks.cell((unknown_payments_row, last_col)).set_value(str(payment.sum))
+                    wks.cell((unknown_payments_row, last_col-1)).set_value(payment.payer.clients[0].name)
+                    unknown_payments_row = unknown_payments_row + 1
+
 
     def get_clients(self):
         counters = {

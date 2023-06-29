@@ -4,9 +4,9 @@ import simplejson as simplejson
 from marshmallow import EXCLUDE
 from marshmallow_sqlalchemy import fields, auto_field
 from sqlalchemy import func, Column, Integer, String, ForeignKey, LargeBinary, Numeric, DateTime, Time, Text, Table, \
-    JSON
+    JSON, Boolean
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import relationship, configure_mappers, column_property
+from sqlalchemy.orm import relationship, configure_mappers, column_property, aliased
 
 from database import Base
 import marshmallow_sqlalchemy as ma
@@ -14,6 +14,7 @@ import marshmallow_sqlalchemy as ma
 
 # alembic revision --autogenerate -m "card_number_field"
 # alembic upgrade head
+# alembic downgrade -1
 
 
 class smsMsg(Base):
@@ -39,6 +40,7 @@ class Goods(Base):
     id: Column = Column(Integer, primary_key=True)
     name: Column = Column(Text)
     variants: Column = Column(Text)
+    active: Column = Column(Boolean)
 
 
 payers_to_clients = Table('payers_to_clients',
@@ -90,9 +92,10 @@ class Messages(Base):
     customer_id: Column = Column(Integer, ForeignKey(Customers.id), nullable=False)
     timestamp: Column = Column(DateTime, nullable=False)
     text: Column = Column(Text)
+    quoted_id: Column = Column(Integer, ForeignKey(id))
     props: Column = Column(JSON)
     customer = relationship(Customers, foreign_keys=customer_id)
-
+    quoted = relationship("Messages")
     @hybrid_property
     def order_descr(self):
         descr = ''

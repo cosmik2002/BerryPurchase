@@ -1,5 +1,5 @@
 <template>
-  <q-dialog>
+  <q-dialog @show="show">
     <q-card>
       <q-card-section>
         {{ this.message.text }}
@@ -104,6 +104,11 @@ export default {
     }
   },
   methods: {
+    show (){
+      this.try_to_guess = true;
+      this.getMessageOrder();
+      console.log("show");
+    },
     updRow(row, data) {
       MessageOrder.api().post('message_order', {
         id: row.id, ...data
@@ -140,8 +145,7 @@ export default {
     }
   },
   beforeUpdate() {
-    this.getMessageOrder()
-    // console.log("ok");
+    // this.getMessageOrder()
   }
 }
 </script>

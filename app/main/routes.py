@@ -68,7 +68,11 @@ def message_order(message_id=None, message_order_id=None):
         current_app.session.commit()
         return MessageOrdersSchema().dumps(message_order_row)
     elif request.method == 'GET':
-        return get_message_order(current_app.session, message_id, message_order_id)
+        if 'try_to_guess' in request.path:
+            try_to_guess=True
+        else:
+            try_to_guess=False
+        return get_message_order(current_app.session, message_id, message_order_id, try_to_guess)
 
 @bp.route('/start_wa_client', methods=['GET'])
 def start_wa_client():

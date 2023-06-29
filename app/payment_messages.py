@@ -14,7 +14,7 @@ from sqlalchemy.orm import Query
 from tqdm import tqdm
 from app.pdf_read import ReadSberStatementPdf
 from database import SessionRemote, Session
-from app.models import smsMsg, Payments, Payers, PaymentsSchema
+from app.models import smsMsg, Payments, Payers, PaymentsSchema, Settings
 from datetime import datetime as dt
 
 PayerData = namedtuple('PayerData', 'name card_number text bank_name')
@@ -225,6 +225,8 @@ class PaymentsProcessor:
                     return
                 start_date = date - datetime.timedelta(minutes=30)
                 end_date = date + datetime.timedelta(minutes=90)
+                start_date = date.replace(hour=0, minute=0, second=0, microsecond=0)
+                end_date = (date + datetime.timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
                 payment: List[Payments] = self.session.query(Payments).filter(Payments.sum == summa,
                                                                               Payments.timestamp.between(start_date,
                                                                                                          end_date)).all()
@@ -273,7 +275,9 @@ class PaymentsProcessor:
 
     def get_payment_messages(self):
         session_remote = SessionRemote()
-        start_date = datetime.datetime(2023, 1, 1)
+        # start_date = datetime.datetime(2023, 1, 1)
+        start_date = self.session.query(Settings).filter(Settings.name == Settings.START_DATE).one()
+        start_date = dt.strptime(start_date.value, "%d.%m.%Y")
         self.counters = {
             'payers_add': 0,
             'payments_update': 0,
