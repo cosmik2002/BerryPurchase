@@ -94,7 +94,7 @@ class gSheets:
         # t = client.spreadsheet_ids()
         # print (t)
         # Open the spreadsheet and the first sheet.
-        sh = client.open('Урбаны 2023')
+        sh = client.open('2024 УРБАНЫ')
         # wks = sh.sheet1
         sheet_name = self.session.query(Settings).filter(Settings.name == Settings.SHEET_NAME).one().value
         wks = sh.worksheet('title', sheet_name)

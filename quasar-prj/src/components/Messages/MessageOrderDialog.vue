@@ -32,8 +32,7 @@
                          @update:model-value="updRow(props.row, {quantity: $event})"></q-input>
               </q-td>
               <q-td key="price" :props="props">
-                <q-input :model-value="props.row.price" input-class="row-input"
-                         @update:model-value="updRow(props.row, {price: $event})"></q-input>
+                {{props.row.good.price}}
               </q-td>
             <q-td key="actions" :props="props">
               <q-btn icon="delete" round @click="deleteGood(props.row, props.rowIndex)"></q-btn>
@@ -105,7 +104,7 @@ export default {
   },
   methods: {
     show (){
-      this.try_to_guess = true;
+      this.try_to_guess = false;
       this.getMessageOrder();
       console.log("show");
     },
@@ -136,8 +135,8 @@ export default {
     },
     getMessageOrder() {
       //todo разобраться как запустить по др. точке при открытии диалога
-      if (this.try_to_guess){
-       this.try_to_guess = false;
+      if (!this.message.order_descr){
+       // this.try_to_guess = false;
         MessageOrder.api().get('message_order_try_to_guess/' + this.message.id, {persistBy: 'create'})
       } else {
         MessageOrder.api().get('message_order/' + this.message.id, {persistBy: 'create'})

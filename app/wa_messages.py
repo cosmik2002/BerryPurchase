@@ -5,7 +5,7 @@ from typing import List
 
 from sqlalchemy import not_, or_, Boolean
 
-import PySimpleGUI as sg
+# import PySimpleGUI as sg
 from sqlalchemy.orm import aliased
 
 from app.models import Customers, Messages, Goods, MessagesSchema, Clients, ClientsSchema, ClientsLinks, \
@@ -98,7 +98,7 @@ def load_payers(session):
 
 
 def load_goods(session):
-    goods = session.query(Goods).all()
+    goods = session.query(Goods).filter(Goods.active == True).all()
     goods_schema = GoodsSchema(many=True)
     output = goods_schema.dump(goods)
     return output
@@ -118,7 +118,7 @@ def get_wa_messages(session):
         messages = json.load(f)
 
     for i, message in enumerate(messages):
-        sg.one_line_progress_meter('This is my progress meter!', i, len(messages), '-key-')
+        # sg.one_line_progress_meter('This is my progress meter!', i, len(messages), '-key-')
         t = datetime.utcfromtimestamp(message['t'])
         sender = message['sender']
         cust = session.query(Customers).filter_by(wa_id=sender['id']).all()

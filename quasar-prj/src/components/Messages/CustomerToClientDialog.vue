@@ -7,10 +7,12 @@
         <q-select
           label="Clients"
           v-model="client"
-          :options="clients"
+          :options="options"
+          use-input
           option-label="name"
           option-value="id"
-          :option-disable="(item) => item.customers.length > 0"
+          @filter="filterFn"
+           :option-disable="(item) => item && item.customers && item.customers.length > 0"
         />
       </q-card-section>
       <q-card-section>
@@ -33,7 +35,8 @@ export default {
   emits: ['close'],
   data: () => ({
     client: null,
-    oldClient: null
+    oldClient: null,
+    options: null
   }),
   computed: {
     clients() {
@@ -44,7 +47,19 @@ export default {
     getClients() {
       Client.api().get('clients');
     },
+      filterFn (val, update) {
+        if (val === '') {
+          update(() => {
+            this.options = this.clients;
+          })
+          return
+        }
 
+        update(() => {
+          const needle = val.toLowerCase()
+          this.options = this.clients.filter(v => v.name.toLowerCase().indexOf(needle) > -1)
+        })
+      },
     saveCustomerToClient() {
       CustomersToClients.api().post('customers_to_clients', {
         client_id: this.client.id,

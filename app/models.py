@@ -15,7 +15,7 @@ import marshmallow_sqlalchemy as ma
 # alembic revision --autogenerate -m "card_number_field"
 # alembic upgrade head
 # alembic downgrade -1
-
+# 91d5ff360882_price_field.py - см при проблемах с sqlite
 
 class smsMsg(Base):
     __tablename__ = "sms_msg"
@@ -41,6 +41,9 @@ class Goods(Base):
     name: Column = Column(Text)
     variants: Column = Column(Text)
     active: Column = Column(Boolean)
+    price: Column = Column(Numeric)
+    url: Column = Column(Text)
+    image: Column = Column(Text)
 
 
 payers_to_clients = Table('payers_to_clients',
@@ -100,7 +103,7 @@ class Messages(Base):
     def order_descr(self):
         descr = ''
         for row in self.message_order:
-            descr += f"{row.good.name}-{row.quantity or 0:.2f}; "
+            descr += f"{row.good.name}-{float(row.quantity or 0):g}; "
         return descr
     @order_descr.setter
     def order_descr(self, val):
@@ -137,6 +140,7 @@ class Settings(Base):
     START_DATE = 'start_date'
     SHEET_NAME = 'sheet_name'
     WA_CLIENT = 'wa_client'
+    MARKET_LOAD = 'market_load'
     id: Column = Column(Integer, primary_key=True)
     name: Column = Column(Text)
     value: Column = Column(JSON)

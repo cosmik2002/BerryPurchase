@@ -14,6 +14,8 @@ export default class Message extends Model {
       text: this.attr(null),
       props: this.attr(null),
       order_descr: this.attr(null),
+      quoted_id: this.attr(null),
+      // quoted: this.belongsTo(Message, 'quoted_id'),
       customer: this.belongsTo(Customer, 'customer_id'),
       message_orders: this.hasMany(MessageOrder, 'message_id')
     }

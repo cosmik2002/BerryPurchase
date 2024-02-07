@@ -3,10 +3,10 @@ import os
 import sys
 from logging.handlers import RotatingFileHandler
 
-from flask import Flask, _app_ctx_stack
+from flask import Flask
 from flask_cors import CORS
 from flask_marshmallow import Marshmallow
-#from flask_dotenv import DotEnv
+# from flask_dotenv import DotEnv
 # from flask_sqlalchemy import SQLAlchemy
 # from app import routes, models
 # configuration
@@ -15,7 +15,7 @@ from sqlalchemy.orm import scoped_session
 
 from app.whatsapp import WhatsApp
 from config import Config
-from database import Session, SessionLocal
+from database import SessionLocal
 
 DEBUG = True
 ma = Marshmallow()

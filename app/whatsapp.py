@@ -21,7 +21,8 @@ from database import Session
 # https://pypi.org/project/javascript/
 # https://github.com/extremeheat/JSPyBridge
 # Whatsapp-Web
-# https://github.com/pedroslopez/whatsapp-web.js
+#
+
 
 
 class WhatsApp:
@@ -31,7 +32,6 @@ class WhatsApp:
         if not hasattr(cls, 'instance'):
             cls.__instance = super(WhatsApp, cls).__new__(cls)
             cls.__instance.__initialized = False
-            print(threading.get_ident())
         return cls.__instance
 
     def __del__(self):
@@ -60,7 +60,7 @@ class WhatsApp:
 
     def init_app(self, app):
         self.session = app.session
-        self.update_setting({'date': str(datetime.now()), 'started': False})
+        self.update_setting({'date': str(datetime.now()), 'started': 0, 'status' : 0})
 
     def start(self):
         s = self.get_setting()
@@ -70,7 +70,7 @@ class WhatsApp:
         self.media_path = Path(self.media_path_name)
         if not self.media_path.is_dir():
             self.media_path.mkdir()
-        self.update_setting({'date': str(datetime.now()), 'started': False})
+        self.update_setting({'date': str(datetime.now()), 'started': 1, 'status' : 1})
         self.session = None
         self.proc = threading.Thread(target=self.start_client)
         self.proc.start()
@@ -79,8 +79,8 @@ class WhatsApp:
     def start_client(self):
         self.ready = False
         self.session = Session()
-        Client = require('whatsapp-web.js').Client
-        LocalAuth = require('whatsapp-web.js').LocalAuth
+        Client = require('whatsapp-web.js', '^1.23').Client
+        LocalAuth = require('whatsapp-web.js', '^1.23').LocalAuth
         # self.session = session
         self.client = Client({
             'authStrategy': LocalAuth()
@@ -89,7 +89,7 @@ class WhatsApp:
         @On(self.client, 'qr')
         def qr(this, code):
             print('scan code')
-            self.update_setting({'qrcode':code, 'date':str(datetime.now()), 'started':False})
+            self.update_setting({'qrcode':code, 'date':str(datetime.now()), 'started':0, 'status' : 1})
             img = qrcode.make(code)
             type(img)  # qrcode.image.pil.PilImage
             img.save("some_file.png")
@@ -99,10 +99,22 @@ class WhatsApp:
             if msg.body == '!ping':
                 msg.reply("pong")
 
+        @On(self.client, 'authenticated')
+        def authenticated(this, payload):
+            print('authenticated')
+
+        @On(self.client, 'disconnected')
+        def authenticated(this, reason):
+            print('disconnected ' + reason)
+
+        @On(self.client, 'auth_failure')
+        def authenticated(this, msg):
+            print('auth_failure ' + msg)
+
         @On(self.client, 'ready')
         def ready(*args):
             self.ready = True
-            self.update_setting({'date':str(datetime.now()), 'started':True})
+            self.update_setting({'date':str(datetime.now()), 'started':2, 'status': 2})
             print('client ready')
             # self.read_messages()
 
@@ -113,6 +125,12 @@ class WhatsApp:
         print("wa initialized")
 
     def __init__(self):
+        waWeb = require('whatsapp-web.js', '^1.23')
+        self.treadIdent = threading.get_ident()
+        self.waVersion = waWeb.version
+        print(threading.get_ident())
+        print(waWeb.version)
+        self.ready = False
         if self.__initialized:
             return
         self.__initialized = True
@@ -131,7 +149,7 @@ class WhatsApp:
         }
         if not self.ready:
             return counters
-        chats = self.client.getChats()
+        chats = self.client.getChats(timeout=1500)
         # name = 'моё'
         name = 'Ягоды из Сербии в Чехове'
         my_chat = None
@@ -139,7 +157,7 @@ class WhatsApp:
             if chat.name == name:
                 my_chat = chat
                 break
-        messages = my_chat.fetchMessages({'limit': 500})
+        messages = my_chat.fetchMessages({'limit': 500}, timeout=1500)
         # print(messages)
 
         for i, message in enumerate(messages):
@@ -170,7 +188,7 @@ class WhatsApp:
                     media = message.downloadMedia(
                         timeout=500)  # mimetype: 'image/jpeg', data: (base64?data); mimetype: 'application/pdf', data: (base64?data)
                     if media:
-                        ext = guess_extension(media.mimetype)
+                        ext = guess_extension(media.mimetype) or ''
                         filename = Path(self.media_path, message.id._serialized+ext)
                         with open(filename, 'wb') as f:
                             f.write(base64.b64decode(media.data.encode('utf-8')))
@@ -190,8 +208,8 @@ class WhatsApp:
                     quoted = self.session.query(Messages).filter_by(wa_id=message.getQuotedMessage().id._serialized).first()
                     if quoted:
                         msg.quoted_id = quoted.id
-                        self.session.add(msg)
-                        self.session.commit()
+                self.session.add(msg)
+                self.session.commit()
                 counters['new_messages'] += 1
             else:
                 if message.hasQuotedMsg:

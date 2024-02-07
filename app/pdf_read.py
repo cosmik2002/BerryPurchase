@@ -54,8 +54,8 @@ class ReadSberStatementPdf:
                                                                                      x)) is not None else '')
         # тут в лямбду передается Series из двух ячеек для группировки
         tab = tab.groupby(tab.index // 2).agg(lambda x: x.dropna().astype(str).str.cat(sep=','))
-        tab['date'] = tab['date'].astype('datetime64')
-        tab['date1'] = tab['date1'].astype('datetime64')
+        tab['date'] = tab['date'].astype('datetime64[ns]')
+        tab['date1'] = tab['date1'].astype('datetime64[ns]')
         return tab
 
 

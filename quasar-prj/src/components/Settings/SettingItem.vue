@@ -23,7 +23,7 @@ export default {
       }
       if (this.setting.value !== this.item.value || this.setting.name !== this.item.name) {
         Setting.api().post('settings', this.setting).then((result) => {
-          this.setting = result;
+          this.setting = result.entities.settings[0];
         });
       }
     },

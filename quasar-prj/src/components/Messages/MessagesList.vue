@@ -99,7 +99,12 @@ export default {
       params += (params !== '' ? '&' : '') + `page=${this.page}`;
       params += (params !== '' ? '&' : '') + `page_size=${this.page_size}`;
       url += '?' + params;
-      Message.api().get(url, {persistBy: 'create'});
+      Message.api().get(url, {
+        persistBy: 'create',
+        persistOptions: {
+          insertOrUpdate: ['customer', 'clients']
+        }
+      });
     }
   },
   created() {

@@ -10,10 +10,14 @@ class MarketSpider(scrapy.Spider):
         products = response.css('li.product.type-product')
         for product in products:
             name = product.css('h2.woocommerce-loop-product__title::text').get()
-            price = product.css('span.price bdi::text').get()
+            price = float(product.css('span.price bdi::text').get().replace(" ", ""))
+            url = product.css('a::attr(href)').get()
+            img = product.css('img::attr(src)').get()
             yield {
                 'name': name,
-                'price': price
+                'price': price,
+                'url': url,
+                'image': img,
             }
         categories = response.css('li.product-category.product a::attr(href)').getall()
         # if not categories:

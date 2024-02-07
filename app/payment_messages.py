@@ -155,14 +155,16 @@ class PaymentsProcessor:
                                                                                          days=1))).all()
             # костыль для комиссий сбера которые идут с тем-же кодом операции
             if row.code in op_codes:
-                op_codes[row.code] += float(row.summa)
+                op_codes[row.code+'_'+str(row.date.month)] += float(row.summa)
                 if payment[0].sum != op_codes[row.code]:
                     self.log(f"sum updated {row.code} {payment[0].sum} -> {op_codes[row.code]}")
                     print(row.code, row.summa)
                     payment[0].sum = op_codes[row.code]
                     self.session.commit()
             else:
-                op_codes[row.code] = float(row.summa)
+                if row.code=='280300':
+                    t=0
+                op_codes[row.code+'_'+str(row.date.month)] = float(row.summa)
             if payment:
                 continue
             bank = ''

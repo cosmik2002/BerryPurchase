@@ -9,6 +9,7 @@
   <q-file v-model="file" label="Файл выписки"/>
   <q-btn @click="fileUpload($event)">Загрузить выписку</q-btn>
   <q-btn @click="parseNotify($event)">Разобрать уведомления</q-btn>
+  <q-btn @click="getPriceList">getPriceList</q-btn>
   <q-separator/>
   <q-btn @click="addRow" icon="add"></q-btn>
   <q-list>
@@ -63,6 +64,14 @@ export default {
         console.error(error);
       });
     },
+    getPriceList(evt) {
+      this.upload_result = '';
+      axios.get(path + '/get_price_list').then((data) => {
+        this.upload_result = data.data;
+      }).catch((error) => {
+        console.error(error);
+      });
+    },
     getSummary(evt) {
       this.upload_result = '';
       axios.get(path + '/get_summary').then((data) => {
@@ -98,7 +107,9 @@ export default {
     },
 
     addRow() {
-      Setting.insert({data: {name: '', value: ''}});
+      Setting.insert({data: {name: '', value: ''}}).then((res)=>{
+        let t=res;
+      });
     },
 
     fillPayments() {
@@ -123,18 +134,18 @@ waLogin() {
 
     subscribe() {
       axios.get(path + '/subscribe').then((res) => {
-        if (res.data.code) {
+        if (res.data.qrcode) {
           var canvas = document.getElementById('canvas')
-          QRCode.toCanvas(canvas, res.data.code, function (error) {
+          QRCode.toCanvas(canvas, res.data.qrcode, function (error) {
             if (error) console.error(error)
             console.log('success!');
           });
           return
         }
         console.log(res.data.status)
-        if (res.data.status) {
+        if (res.data.status == 1) {
           setTimeout(this.subscribe, 1000);
-        } else {
+        } else if (res.data.status == 2){
           this.upload_result = {status: 'wa started'};
         }
       }).catch((error) => {
@@ -161,6 +172,7 @@ waLogin() {
   mounted() {
     this.getSettings();
     this.startWebSocket();
+    this.subscribe();
   }
 }
 </script>

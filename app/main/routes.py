@@ -10,6 +10,7 @@ from flask import request, current_app
 from app import wa, sock
 from app.g_sheets import gSheets
 from app.main import bp
+from app.market_parser import MarketLoader
 from app.payment_messages import PaymentsProcessor
 from app.whatsapp import WhatsApp
 from database import Session
@@ -33,7 +34,7 @@ def messages(message_id=None):
         'has_order': request.args.get('has_order'),
         'hide_empty': request.args.get('hide_empty')
     }
-    start_date = current_app.session.query(Settings).filter(Settings.name == Settings.START_DATE)\
+    start_date = current_app.session.query(Settings).filter(Settings.name == Settings.START_DATE) \
         .first()
     if start_date:
         search_options['start_date'] = datetime.datetime.strptime(start_date.value, "%d.%m.%Y")
@@ -69,30 +70,34 @@ def message_order(message_id=None, message_order_id=None):
         return MessageOrdersSchema().dumps(message_order_row)
     elif request.method == 'GET':
         if 'try_to_guess' in request.path:
-            try_to_guess=True
+            try_to_guess = True
         else:
-            try_to_guess=False
+            try_to_guess = False
         return get_message_order(current_app.session, message_id, message_order_id, try_to_guess)
+
 
 @bp.route('/start_wa_client', methods=['GET'])
 def start_wa_client():
-   wa.start()
-   return "ok"
+    wa.start()
+    return "ok"
 
 
 @bp.route('/load_messages', methods=['GET'])
 def load_messages():
     return wa.read_messages()
 
+
 @bp.route('/wa_logout', methods=['GET'])
 def wa_logout():
     wa.logout()
     return ""
 
+
 @bp.route('/wa_login', methods=['GET'])
 def wa_login():
     wa.login()
     return ""
+
 
 @bp.route('/parse_notify', methods=['GET'])
 def parse_notify():
@@ -129,6 +134,7 @@ def customers():
 def payers():
     return load_payers(current_app.session)
 
+
 @bp.route('/goods', methods=['GET'])
 def goods():
     return load_goods(current_app.session)
@@ -157,10 +163,12 @@ def fill_payments():
     gSheets(session=current_app.session).fill_payments()
     return ''
 
+
 @bp.route('/get_summary', methods=['GET'])
 def get_summary():
     data = gSheets(session=current_app.session).get_summary()
     return data
+
 
 @bp.route('/payers_to_clients', methods=['POST'])
 def payers_to_clients():
@@ -177,8 +185,9 @@ def payers_to_clients():
             payer.clients.remove(payer.clients[0])
         payer.clients.append(client)
         current_app.session.commit()
-        response_object = {**response_object, ** data}
+        response_object = {**response_object, **data}
         return response_object
+
 
 @bp.route('/customers_to_clients', methods=['POST'])
 def customers_to_clients():
@@ -191,8 +200,9 @@ def customers_to_clients():
             customer.clients.remove(customer.clients[0])
         customer.clients.append(client)
         current_app.session.commit()
-        response_object = {**response_object, ** data}
+        response_object = {**response_object, **data}
         return response_object
+
 
 @bp.route('/clients_links', methods=['GET', 'POST'])
 def clients_link():
@@ -201,9 +211,11 @@ def clients_link():
         data = request.get_json()
         if old_data := data.get('oldClientLink'):
             del data['oldClientLink']
-            load_data = ClientsLinksSchema().load(data, session=current_app.session, instance=current_app.session.query(ClientsLinks).filter_by(
-                client_id=old_data['client_id'], customer_id=old_data['customer_id'],
-                payer_id=old_data['payer_id']).one())
+            load_data = ClientsLinksSchema().load(data, session=current_app.session,
+                                                  instance=current_app.session.query(ClientsLinks).filter_by(
+                                                      client_id=old_data['client_id'],
+                                                      customer_id=old_data['customer_id'],
+                                                      payer_id=old_data['payer_id']).one())
         else:
             load_data = ClientsLinksSchema().load(data, session=current_app.session)
             current_app.session.add(load_data)
@@ -211,6 +223,7 @@ def clients_link():
         return response_object
     else:
         return get_clients_links(current_app.session)
+
 
 @bp.route('/settings', methods=['GET', 'POST'])
 @bp.route('/settings/<id>', methods=["DELETE"])
@@ -222,7 +235,8 @@ def settings(id=None):
     if request.method == 'POST':
         data = request.get_json()
         if data.get('id'):
-            load_data = SettingsSchema().load(data, session=current_app.session, instance=current_app.session.query(Settings).get(data['id']))
+            load_data = SettingsSchema().load(data, session=current_app.session,
+                                              instance=current_app.session.query(Settings).get(data['id']))
         else:
             load_data = SettingsSchema().load(data, session=current_app.session)
             current_app.session.add(load_data)
@@ -233,16 +247,23 @@ def settings(id=None):
         output = SettingsSchema(many=True).dump(settings)
         return output
 
+
 @bp.route('/subscribe', methods=['GET'])
 def subscribe():
-    cnt = current_app.session.query(Settings).filter(Settings.name==Settings.WA_CLIENT).all()
-    if not cnt or not 'qrcode' in cnt[0].value and not 'started' in cnt[0].value:
-        return {'status':1}
-    elif 'qrcode' in cnt[0].value:
-        return {'code':cnt[0].value['qrcode']}
-    elif 'started' in cnt[0].value:
-        return {'status': 0 if cnt[0].value['started'] else 1}
+    cnt = current_app.session.query(Settings).filter(Settings.name == Settings.WA_CLIENT).all()
+    return cnt[0].value
+    # started = cnt[0].value.get('started')
+    # if not cnt or not 'qrcode' in cnt[0].value and started is None or started == 0:
+    #     return {'status':0}
+    # elif 'qrcode' in cnt[0].value:
+    #     return {'code':cnt[0].value['qrcode']}
+    # elif 'started' in cnt[0].value:
+    #     return {'status': 0 if cnt[0].value['started'] else 1}
 
+@bp.route('/get_price_list', methods=['GET'])
+def get_price_list():
+    res = MarketLoader().load()
+    return res or ''
 
 @sock.route('/echo')
 def echo(ws):
@@ -251,7 +272,7 @@ def echo(ws):
         data = ws.receive()
         c += 1
         # if c % 10000 == 0:
-            # print(c)
-            # ws.send(c)
+        # print(c)
+        # ws.send(c)
         if data:
             ws.send(data)
