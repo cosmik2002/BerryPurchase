@@ -17,7 +17,8 @@ from database import Session
 from app.wa_messages import get_messages, get_clients_links, load_customers, load_payers, load_clients, load_goods, \
     get_message_order
 from app.models import ClientsLinks, ClientsLinksSchema, payers_to_clients, Payers, Clients, Customers, \
-    MessageOrdersSchema, SettingsSchema, Settings, Payments, PaymentsSchema, MessageOrders, Messages, MessagesSchema
+    MessageOrdersSchema, SettingsSchema, Settings, Payments, PaymentsSchema, MessageOrders, Messages, MessagesSchema, \
+    Goods, GoodsSchema
 
 
 @bp.route('/messages', methods=['GET'])
@@ -135,8 +136,22 @@ def payers():
     return load_payers(current_app.session)
 
 
-@bp.route('/goods', methods=['GET'])
+@bp.route('/goods', methods=['GET', 'POST'])
 def goods():
+    if request.method == 'POST':
+        data = request.get_json()
+        if data.get('id'):
+            load_data = GoodsSchema().load(data, session=current_app.session,
+                                              instance=current_app.session.query(Goods).get(data['id']))
+        else:
+            load_data = GoodsSchema().load(data, session=current_app.session)
+            current_app.session.add(load_data)
+        current_app.session.commit()
+        return GoodsSchema().dumps(load_data)
+    # if request.method == 'POST':
+    #     data = request.get_json()
+    #     good = current_app.session.query(Goods).get(data['id'])
+    #     print(data)
     return load_goods(current_app.session)
 
 

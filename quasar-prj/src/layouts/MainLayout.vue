@@ -37,7 +37,7 @@
       </q-list>
     </q-drawer>
 
-    <q-page-container style="max-width:1000px">
+    <q-page-container style="max-width:1500px">
       <router-view/>
     </q-page-container>
   </q-layout>
@@ -70,9 +70,9 @@ const linksList = [
     link: '/settings'
   },
   {
-    title: 'store',
+    title: 'goods',
     icon: 'gavel',
-    link: '/store'
+    link: '/goods'
   }
 ]
 

@@ -24,15 +24,17 @@ def is_number(s):
 class gSheets:
     def __init__(self, session):
         self.session = session
+        self.workbook_name = '2024 УРБАНЫ'
 
     def open_sheet(self):
         sheet_name = self.session.query(Settings).filter(Settings.name == Settings.SHEET_NAME).one().value
         client = pygsheets.authorize(service_file=r'lucid-access-99211-bd2544a973ad.json')
-        sh = client.open('Урбаны 2023')
+        sh = client.open(self.workbook_name)
         wks: Worksheet = sh.worksheet('title', sheet_name)
         return wks
 
     def get_summary(self):
+        '''список на раздачу'''
         wks = self.open_sheet()
         df = wks.get_as_df(start='A2')
         df = df.replace('', None)
@@ -61,7 +63,7 @@ class gSheets:
         sheet_name = self.session.query(Settings).filter(Settings.name == Settings.SHEET_NAME).one().value
         payments: List[Payments] = self.session.query(Payments).filter(Payments.timestamp > start_date).all()
         client = pygsheets.authorize(service_file=r'lucid-access-99211-bd2544a973ad.json')
-        sh = client.open('Урбаны 2023')
+        sh = client.open(self.workbook_name)
         wks: Worksheet = sh.worksheet('title', sheet_name)
         rng = wks.get_values('2', '2')
         last_col = len(rng[0])

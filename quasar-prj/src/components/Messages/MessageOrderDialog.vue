@@ -2,19 +2,25 @@
   <q-dialog @show="show">
     <q-card>
       <q-card-section>
+       <div>{{ this.message.customer.name ?? this.message.customer.short_name }}</div>
         {{ this.message.text }}
-      </q-card-section>
-      <q-card-section>
         <q-table
           :columns="columns"
           :rows="message_order"
           wrap-cells
           row-key="id"
+          dense
+          virtual-scroll
+          flat
+          style="height: 350px"
+                v-model:pagination="pagination"
+      :rows-per-page-options="[0]"
         >
 
           <template v-slot:top>
-            <q-btn icon="add" @click="showAddGood"></q-btn>
-            <q-btn icon="clear" @click="clearOrder"></q-btn>
+            <q-btn round size="sm" icon="add" @click="showAddGood"></q-btn>
+            &nbsp;
+            <q-btn round size="sm" icon="clear" @click="clearOrder"></q-btn>
           </template>
           <template v-slot:body="props">
             <q-tr :props="props">
@@ -28,15 +34,18 @@
                 {{ props.row.good.name }}
               </q-td>
               <q-td key="quantity" :props="props">
-                <q-input :model-value="props.row.quantity" input-class="row-input"
+                <q-input dense :model-value="props.row.quantity" input-class="row-input"
                          @update:model-value="updRow(props.row, {quantity: $event})"></q-input>
               </q-td>
-              <q-td key="price" :props="props">
-                {{props.row.good.price}}
-              </q-td>
+<!--              <q-td key="price" :props="props">
+                {{props.row.good.price ? parseInt(props.row.good.price) : ''}}
+              </q-td>-->
             <q-td key="actions" :props="props">
-              <q-btn icon="delete" round @click="deleteGood(props.row, props.rowIndex)"></q-btn>
-              <q-btn icon="edit" round @click="editGood(props.row, props.rowIndex)"></q-btn>
+              <q-btn icon="delete" round size="sm"
+                     @click="deleteGood(props.row, props.rowIndex)"></q-btn>
+            &nbsp;
+              <q-btn icon="edit" round size="sm"
+                     @click="editGood(props.row, props.rowIndex)"></q-btn>
             </q-td>
             </q-tr>
           </template>
@@ -67,6 +76,9 @@ export default {
     try_to_guess: true,
     good_dialog: false,
     message_order_row: {},
+    pagination:{
+      rowsPerPage:0
+    },
     columns: [/*{
       name: 'id',
       label: 'id',
@@ -78,20 +90,23 @@ export default {
       field: row => row.good.id
     },*/ {
       name: 'good',
-      label: 'good',
-      style: 'width: 200px',
+      label: 'Название',
+      style: 'width: 40%',
+      align: 'left',
       field: row => row.good.name
     }, {
       name: 'quantity',
-      label: 'quantity',
+      style: 'width: 20%',
+      label: 'Кол-во',
       field: 'quantity',
-    }, {
+      align: 'left',
+    },/* {
       name: 'price',
-      label: 'price',
+      label: 'Цена',
       field: 'price',
-    }, {
+    },*/ {
       name: 'actions',
-      label: 'Actions'
+      label: 'Действия'
     }]
   }),
   components: {

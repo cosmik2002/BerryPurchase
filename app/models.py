@@ -44,6 +44,16 @@ class Goods(Base):
     price: Column = Column(Numeric)
     url: Column = Column(Text)
     image: Column = Column(Text)
+    org_price: Column = Column(Numeric)
+    type: Column = Column(Text)
+
+class Prices(Base):
+    __tablename__ = "prices"
+    id: Column = Column(Integer, primary_key=True)
+    good_id: Column = Column(Integer, ForeignKey(Goods.id), nullable=False)
+    date: Column = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    price: Column = Column(Numeric)
+
 
 
 payers_to_clients = Table('payers_to_clients',
@@ -208,6 +218,7 @@ class MessagesSchema(ma.SQLAlchemyAutoSchema):
 class GoodsSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = Goods
+        json_module = simplejson
         include_fk = True
         # include_relationships = True
         load_instance = True

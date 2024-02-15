@@ -3,11 +3,9 @@
     :class="itemClass(item)">
     <q-item-section>
       <q-item-label>{{ formatDate(item.timestamp) }} {{ getCustomerName(item) }} {{
-          item.customer ? item.customer.number : ''}}</q-item-label>
-      <q-item-label>
-
+          item.customer ? item.customer.number : ''}}
+      <span v-if="item.customer.clients.length>0">Клиент: {{ item.customer.clients[0].name }}</span>
       </q-item-label>
-      <q-item-label>{{ item.customer ? item.customer.push_name : '' }}</q-item-label>
       <q-item-label> {{ item.text }}</q-item-label>
       <q-item-label v-if="item.quoted_id">
         <q-card>{{ quoted ? quoted.text : '' }}</q-card>
@@ -17,6 +15,7 @@
                @click="$emit('show_message_order_dialog', item)"></q-btn>
         {{ item.order_descr }}
         <q-checkbox :model-value="item.props && item.props.empty || false"
+                    v-if="item.order_descr==''"
                     @update:model-value="updRow(item, {empty: $event})"
                     label="Нет заказа">
         </q-checkbox>
@@ -25,7 +24,6 @@
       </q-item-label>
     </q-item-section>
     <q-item-section side top>
-      <div v-if="item.customer.clients.length>0">Клиент: {{ item.customer.clients[0].name }}</div>
       <q-btn round icon="face" @click="$emit('show_customer_to_client_dialog', item)"></q-btn>
     </q-item-section>
   </q-item>

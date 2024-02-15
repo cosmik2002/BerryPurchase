@@ -19,10 +19,15 @@ def get_messages(session, message_id, search_options, page, page_size):
         messages_schema = MessagesSchema(exclude=('message_order',))
     else:
         if search_options['src']:
-            # query = query.join(Customers, isouter=True)
-            query = query.filter(Messages.text.like(f"{search_options}"))
+            #case insesitive not work
+            srcT = search_options['src']
+            query = query.join(Customers, isouter=True)
+            query = query.filter(or_(Messages.text.like(f"%{srcT}%"),
+                                     Customers.name.like(f"%{srcT}%"),
+                                     Customers.number.like(f"%{srcT}%")))
         if search_options['has_order']:
-            query = query.join(MessageOrders)
+            query = query.join(MessageOrders, isouter=True)
+            query = query.filter(MessageOrders.id == None)
         if search_options['hide_empty']:
             query = query.filter(
                 or_(Messages.props['empty'].as_string().cast(Boolean) == False, not_(Messages.props['empty'])))
@@ -63,10 +68,9 @@ def try_to_guess(session, message_id):
     goods: List[Goods] = session.query(Goods).all()
     found = []
     for good in goods:
-        if good.active and message.text and any(word in message.text.lower()
-                                                for word in (
-                                                good.variants.split(';') if good.variants else good.name.lower().split(
-                                                    ' ')) if len(word) > 2):
+        words = (word for word in (good.variants.split(';') if good.variants else good.name.lower().split(
+            ' ')) if len(word) > 2 and not re.match("\d+(кг|г)", word))
+        if good.active and message.text and any(word in message.text.lower() for word in words):
             found.append(good.id)
     if found:
         for good in found:
@@ -97,8 +101,11 @@ def load_payers(session):
     return output
 
 
-def load_goods(session):
-    goods = session.query(Goods).filter(Goods.active == True).all()
+def load_goods(session, active=False):
+    if active:
+        goods = session.query(Goods).filter(Goods.active == True).all()
+    else:
+        goods = session.query(Goods).all()
     goods_schema = GoodsSchema(many=True)
     output = goods_schema.dump(goods)
     return output

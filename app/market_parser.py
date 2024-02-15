@@ -12,7 +12,7 @@ from config import Config
 
 # Config.SQLALCHEMY_DATABASE_URI_NO_FLASK = 'sqlite:///../clients.sqb'
 
-from app.models import Goods, Settings
+from app.models import Goods, Settings, Prices
 from database import Session
 
 
@@ -24,27 +24,33 @@ class MarketLoader:
     def __init__(self):
         self.session = None
 
-    def load(self):
+    def load(self, cwd=r'app\MarketParser'):
         file_name = "markt.json"
-        cwd = r'app\MarketParser'
+        # cwd = r'app\MarketParser'
         full_file_name = os.path.join(cwd, file_name)
         if Path(full_file_name).exists():
             os.remove(full_file_name)
-        process = subprocess.run(r"scrapy runspider MarketParser\spiders\market.py", cwd = cwd)
+        process = subprocess.run(r"scrapy runspider MarketParser\spiders\market.py", cwd=cwd)
         if process.returncode != 0:
             return {'res': process.stdout or '' + process.stderr or ''}
         self.session = Session()
-        self.session.query(Goods).update({'active':0})
+        self.session.query(Goods).update({'active': 0})
         self.session.commit()
         with open(full_file_name, 'r', encoding='utf-8') as f:
             market = json.load(f)
             for good in market:
                 db_good = self.session.query(Goods).filter(Goods.name == good['name']).all()
                 if not db_good:
-                    self.session.add(Goods(name=good['name'], price=good['price'], url=good['url'], image=good['image'], active=True))
+                    db_good = Goods(name=good['name'], price=good['price'], url=good['url'], image=good['image'],
+                                    active=True)
+                    self.session.add(db_good)
+                    self.session.flush()
+                    self.session.add(Prices(good_id=db_good.id, price=good['price']))
                     self.session.commit()
                 else:
                     db_good = db_good[0]
+                    if db_good.price != good['price']:
+                        self.session.add(Prices(good_id=db_good.id, price=good['price']))
                     if db_good.price != good['price'] or db_good.url != good['url'] or db_good.image != good['image']:
                         db_good.price = good['price']
                         db_good.url = good['url']
@@ -52,10 +58,11 @@ class MarketLoader:
                     db_good.active = True
                     self.session.commit()
         self.update_setting(str(datetime.now()))
+
     def update_setting(self, setting):
         if not hasattr(self, "session"):
             return
-        s = self.session.query(Settings).filter(Settings.name==Settings.MARKET_LOAD).all()
+        s = self.session.query(Settings).filter(Settings.name == Settings.MARKET_LOAD).all()
         if not s:
             s = Settings(name=Settings.MARKET_LOAD, value=setting)
             self.session.add(s)
@@ -67,25 +74,6 @@ class MarketLoader:
             return s
 
 
-
 if __name__ == "__main__":
-    file = r'MarketParser\m.json'
-    self.session = self.session()
-    with open(file, 'r', encoding='utf-8') as f:
-        # market: List[Market] \
-        market = json.load(f)
-        print(market)
-        for good in market:
-            db_good = self.session.query(Goods).filter(Goods.name == good['name']).all()
-            if not db_good:
-                self.session.add(Goods(name=good['name']))
-                self.session.commit()
-
-    exit(0)
-
-    process = CrawlerProcess({
-        'USER_AGENT': 'Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 5.1)'
-    })
-
-    process.crawl(market.MarketSpider)
-    process.start()  # the script will block here until the crawling is finished
+    print(os.getcwd())
+    MarketLoader().load()
