@@ -73,6 +73,11 @@ const linksList = [
     title: 'goods',
     icon: 'gavel',
     link: '/goods'
+  },
+  {
+    title: 'reports',
+    icon: 'gavel',
+    link: '/reports'
   }
 ]
 

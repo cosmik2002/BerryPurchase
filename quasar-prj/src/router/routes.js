@@ -12,6 +12,7 @@ const routes = [
       { path: 'store', component: () => import('components/StoreTest.vue') },
       { path: 'settings', component: () => import('components/Settings/SettingsPage.vue') },
       { path: 'goods', component: () => import('components/Goods/GoodsPage.vue') },
+      { path: 'reports', component: () => import('components/Reports/ReportPage.vue') },
     ]
   },
 /*  {

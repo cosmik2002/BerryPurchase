@@ -34,7 +34,7 @@ class gSheets:
         return wks
 
     def get_summary(self):
-        '''список на раздачу'''
+        '''Список на раздачу'''
         wks = self.open_sheet()
         df = wks.get_as_df(start='A2')
         df = df.replace('', None)
@@ -45,17 +45,22 @@ class gSheets:
         price_row = df.iloc[1, :].values
         last_col = len(price_row[price_row != None])
         # last_col = len(df.iloc[1, :][(df.iloc[1, :].values != None)]) #price row len
+        '''melt - преобразование столбцов в строки, 
+        id_vars=['имя'] - столбец с ключами, 
+        value_vars=df.columns[start_col:last_col] - все остальние стобцы (названия ягод) преобразовываем в один (variable) со значениями - названиями колонок'''
         good_tr = df[2:last_row + 1].melt(id_vars=['имя'], value_vars=df.columns[start_col:last_col])
         # меняем , на .
         good_tr = good_tr.replace(to_replace={'value': r','}, value={'value': '.'}, regex=True)
         good_tr = good_tr.replace(to_replace={'value': ' '}, value={'value': None})
+        ''' для строк с value>0 добавляем столбец res (assign) - его значение название из столбца variable - кол-во (value) 
+        потом группируем (groupby(name)), объединяя res через ,(agg) '''
         cli_itog = good_tr[good_tr['value'].astype('float') > 0].assign(
             res=lambda x: x['variable'].astype(str) + "-" + x['value'].astype('float').map('{:g}'.format)).groupby(
             'имя').agg({'res': lambda x: ",".join(x)})
         df.iloc[2:last_row + 1, start_col:last_col] = df.iloc[2:last_row + 1, start_col:last_col].replace(' ', value=None)
         good_itog = df.iloc[2:last_row + 1, start_col:last_col].replace(regex=',', value='.').astype('float').sum()
         res = pd.concat([cli_itog, good_itog])
-        return res.to_json()
+        return res.to_json(), good_tr.to_dict(orient='records'), good_itog.to_dict()
 
     def fill_payments(self):
         start_date = self.session.query(Settings).filter(Settings.name == Settings.START_DATE).one()

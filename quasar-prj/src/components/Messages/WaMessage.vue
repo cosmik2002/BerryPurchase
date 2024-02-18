@@ -5,6 +5,7 @@
       <q-item-label>{{ formatDate(item.timestamp) }} {{ getCustomerName(item) }} {{
           item.customer ? item.customer.number : ''}}
       <span v-if="item.customer.clients.length>0">Клиент: {{ item.customer.clients[0].name }}</span>
+      <span v-if="item.for_client_id">Клиент: {{ item.for_client.name }}</span>
       </q-item-label>
       <q-item-label> {{ item.text }}</q-item-label>
       <q-item-label v-if="item.quoted_id">
@@ -68,7 +69,7 @@ export default {
       }
     },
     itemClass() {
-      if (this.item.customer && this.item.customer.clients.length > 0) {
+      if (this.item.customer && (this.item.customer.clients.length > 0 || this.item.for_client_id)) {
         return "bg-green-1";
       } else {
         return 'bg-red-1';

@@ -55,14 +55,15 @@
         <q-btn @click="$emit('close')">Закрыть</q-btn>
       </q-card-actions>
     </q-card>
-    <good-dialog v-model="good_dialog" :row="message_order_row" @close="good_dialog=false"></good-dialog>
+    <good-dialog v-model="good_dialog" :good="message_order_row.good" @close="good_dialog=false"></good-dialog>
+    <add-good-dialog v-model="add_good_dialog" :row="message_order_row" @close="add_good_dialog=false"></add-good-dialog>
   </q-dialog>
 </template>
 
 <script>
 import {MessageOrder, Setting} from "src/store/berries_store/models";
 import GoodDialog from "components/Messages/GoodDialog.vue";
-import axios from "axios";
+import AddGoodDialog from "components/Messages/AddGoodDialog.vue";
 import {api} from "boot/axios";
 const path = process.env.API_URL;
 export default {
@@ -75,6 +76,7 @@ export default {
   data: () => ({
     try_to_guess: true,
     good_dialog: false,
+    add_good_dialog: false,
     message_order_row: {},
     pagination:{
       rowsPerPage:0
@@ -110,7 +112,8 @@ export default {
     }]
   }),
   components: {
-    GoodDialog
+    GoodDialog,
+    AddGoodDialog
   },
   computed: {
     message_order() {
@@ -127,12 +130,10 @@ export default {
       MessageOrder.api().post('message_order', {
         id: row.id, ...data
       });
-
-      console.log(qty);
     },
     async showAddGood() {
       this.message_order_row = {message_id: this.message.id, quantity: 1};
-      this.good_dialog = true;
+      this.add_good_dialog = true;
     },
     clearOrder(){
       api.get('clear_message_order/'+this.message.id).then((res) => {

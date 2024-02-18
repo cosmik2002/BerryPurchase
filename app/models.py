@@ -46,6 +46,8 @@ class Goods(Base):
     image: Column = Column(Text)
     org_price: Column = Column(Numeric)
     type: Column = Column(Text)
+    short_name: Column = Column(Text)
+    weight: Column = Column(Numeric)
 
 class Prices(Base):
     __tablename__ = "prices"
@@ -102,6 +104,8 @@ class Messages(Base):
     __tablename__ = "messages"
     id: Column = Column(Integer, primary_key=True)
     wa_id: Column = Column(Text, index=True)
+    from_id: Column = Column(Text)
+    chat_id: Column = Column(Text)
     customer_id: Column = Column(Integer, ForeignKey(Customers.id), nullable=False)
     for_client_id: Column = Column(Integer, ForeignKey(Clients.id), nullable=True)
     timestamp: Column = Column(DateTime, nullable=False)
@@ -109,6 +113,7 @@ class Messages(Base):
     quoted_id: Column = Column(Integer, ForeignKey(id))
     props: Column = Column(JSON)
     customer = relationship(Customers, foreign_keys=customer_id)
+    for_client = relationship(Clients, foreign_keys=for_client_id)
     quoted = relationship("Messages")
     @hybrid_property
     def order_descr(self):
@@ -214,6 +219,7 @@ class MessagesSchema(ma.SQLAlchemyAutoSchema):
 
     order_descr = marshmallow.fields.Str()
     customer = fields.Nested(CustomersSchema())
+    for_client = fields.Nested(ClientsSchema())
     message_order = fields.Nested('MessageOrdersSchema', many=True)
 
 

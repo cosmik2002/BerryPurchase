@@ -13,7 +13,8 @@ export default class Good extends Model {
       image: this.attr(null),
       org_price: this.attr(null),
       type: this.attr(null),
-      active:this.attr(null)
+      active: this.attr(null),
+      short_name: this.attr(null)
     }
   }
 }

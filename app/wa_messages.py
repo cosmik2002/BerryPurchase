@@ -68,13 +68,16 @@ def try_to_guess(session, message_id):
     goods: List[Goods] = session.query(Goods).all()
     found = []
     for good in goods:
-        words = (word for word in (good.variants.split(';') if good.variants else good.name.lower().split(
-            ' ')) if len(word) > 2 and not re.match("\d+(кг|г)", word))
-        if good.active and message.text and any(word in message.text.lower() for word in words):
-            found.append(good.id)
+        words = [word for word in (good.variants.split(';') if good.variants else good.name.lower().split(
+            ' ')) if len(word) > 2 and not re.match("\d+(кг|г)", word)]
+        inc = [word in message.text.lower() for word in words]
+        if message.text and any(inc):
+            i = list(filter(lambda x: x!=-1, [message.text.lower().find(word) for word in words]))[0]
+            found.append({'id': good.id, 'pos': i})
     if found:
+        found.sort(key=lambda x: x['pos'])
         for good in found:
-            session.add(MessageOrders(message_id=message_id, good_id=good, quantity=1))
+            session.add(MessageOrders(message_id=message_id, good_id=good['id'], quantity=1))
         session.commit()
         return session.query(MessageOrders).filter(MessageOrders.message_id == message_id).all()
     return []

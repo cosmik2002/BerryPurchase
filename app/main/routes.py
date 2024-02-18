@@ -2,23 +2,25 @@
 import asyncio
 import datetime
 import json
+import os
 from pathlib import Path
 from typing import Optional
 
-from flask import request, current_app
+from flask import request, current_app, send_from_directory
 
 from app import wa, sock
 from app.g_sheets import gSheets
 from app.main import bp
 from app.market_parser import MarketLoader
 from app.payment_messages import PaymentsProcessor
+from app.reports import Reports
 from app.whatsapp import WhatsApp
 from database import Session
 from app.wa_messages import get_messages, get_clients_links, load_customers, load_payers, load_clients, load_goods, \
     get_message_order
 from app.models import ClientsLinks, ClientsLinksSchema, payers_to_clients, Payers, Clients, Customers, \
     MessageOrdersSchema, SettingsSchema, Settings, Payments, PaymentsSchema, MessageOrders, Messages, MessagesSchema, \
-    Goods, GoodsSchema
+    Goods, GoodsSchema, Prices
 
 
 @bp.route('/messages', methods=['GET'])
@@ -141,8 +143,11 @@ def goods():
     if request.method == 'POST':
         data = request.get_json()
         if data.get('id'):
+            instance = current_app.session.query(Goods).get(data['id'])
+            if data.get('price') and data['price'] != instance.price:
+                current_app.session.add(Prices(good_id=instance.id, price = float(data['price'])))
             load_data = GoodsSchema().load(data, session=current_app.session,
-                                              instance=current_app.session.query(Goods).get(data['id']))
+                                           instance=instance)
         else:
             load_data = GoodsSchema().load(data, session=current_app.session)
             current_app.session.add(load_data)
@@ -181,7 +186,7 @@ def fill_payments():
 
 @bp.route('/get_summary', methods=['GET'])
 def get_summary():
-    data = gSheets(session=current_app.session).get_summary()
+    (data, _, _) = gSheets(session=current_app.session).get_summary()
     return data
 
 
@@ -209,12 +214,18 @@ def customers_to_clients():
     response_object = {'status': 'success'}
     if request.method == 'POST':
         data = request.get_json()
-        customer: Customers = current_app.session.query(Customers).get(data['customer_id'])
-        client: Clients = current_app.session.query(Clients).get(data['client_id'])
-        if customer.clients and customer.clients[0].id != client.id:
-            customer.clients.remove(customer.clients[0])
-        customer.clients.append(client)
-        current_app.session.commit()
+        if data.get('client_id'):
+            customer: Customers = current_app.session.query(Customers).get(data['customer_id'])
+            client: Clients = current_app.session.query(Clients).get(data['client_id'])
+            if customer.clients and customer.clients[0].id != client.id:
+                customer.clients.remove(customer.clients[0])
+            customer.clients.append(client)
+            current_app.session.commit()
+        elif data.get('for_client_id'):
+            message:Messages = current_app.session.query(Messages).get(data['message_id'])
+            client: Clients = current_app.session.query(Clients).get(data['for_client_id'])
+            message.for_client_id = client.id
+            current_app.session.commit()
         response_object = {**response_object, **data}
         return response_object
 
@@ -275,10 +286,25 @@ def subscribe():
     # elif 'started' in cnt[0].value:
     #     return {'status': 0 if cnt[0].value['started'] else 1}
 
+
 @bp.route('/get_price_list', methods=['GET'])
 def get_price_list():
     res = MarketLoader().load()
     return res or ''
+
+
+@bp.route('/get_reports', methods=['GET'])
+def get_reports():
+    Reports().create_report()
+    # uploads = os.path.join(current_app.root_path, current_app.config['UPLOAD_FOLDER'])
+    uploads = os.path.join(os.getcwd(), current_app.config['UPLOAD_FOLDER'])
+    return send_from_directory(path="report.xlsx", directory=uploads)
+
+
+@bp.route('/compare_reports', methods=['GET'])
+def compare_reports():
+    return Reports().compare_report()
+
 
 @sock.route('/echo')
 def echo(ws):

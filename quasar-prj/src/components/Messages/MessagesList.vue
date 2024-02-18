@@ -82,9 +82,9 @@ export default {
     },
     messages() {
       if(this.hide_o || this.hide_e){
-      return Message.query().where((msg)=> (this.hide_o ? msg.order_descr=='' : true) && (this.hide_e ? !msg.props.empty : true)).with('customer').with('customer.clients').all();
+      return Message.query().where((msg)=> (this.hide_o ? msg.order_descr=='' : true) && (this.hide_e ? !msg.props.empty : true)).with('for_client').with('customer').with('customer.clients').all();
       }
-      return Message.query().with('customer').with('customer.clients').all();
+      return Message.query().with('for_client').with('customer').with('customer.clients').all();
     }
   },
   methods: {

@@ -14,6 +14,15 @@
           @filter="filterFn"
            :option-disable="(item) => item && item.customers && item.customers.length > 0"
         />
+        <q-select
+          label="Заказ для другого"
+          v-model="forClient"
+          :options="options"
+          use-input
+          option-label="name"
+          option-value="id"
+          @filter="filterFn"
+        />
       </q-card-section>
       <q-card-section>
         {{ this.message.text }}
@@ -35,6 +44,7 @@ export default {
   emits: ['close'],
   data: () => ({
     client: null,
+    forClient: null,
     oldClient: null,
     options: null
   }),
@@ -62,8 +72,10 @@ export default {
       },
     saveCustomerToClient() {
       CustomersToClients.api().post('customers_to_clients', {
-        client_id: this.client.id,
-        customer_id: this.message.customer.id
+        client_id: this.client ? this.client.id : null,
+        customer_id: this.message.customer.id,
+        message_id: this.message.id,
+        for_client_id: this.forClient ? this.forClient.id : null
       }).then((results) => {
         if (this.oldClient) {
           CustomersToClients.delete([this.message.customer.id, this.oldClient.id]);
@@ -73,6 +85,9 @@ export default {
     }
   },
   beforeUpdate() {
+    if(this.message && this.message.for_client){
+      this.forClient = this.message.for_client;
+    }
     if (this.message && this.message.customer.clients.length > 0) {
       this.client = this.message.customer.clients[0];
       this.oldClient = this.message.customer.clients[0];
