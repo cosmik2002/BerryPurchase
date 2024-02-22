@@ -30,6 +30,9 @@
         <q-btn @click="$emit('close')">Отмена</q-btn>
         <q-btn @click="savePayerToClient()">Сохранить</q-btn>
       </q-card-actions>
+    <q-table
+    :rows="itogs">
+    </q-table>
     </q-card>
   </q-dialog>
 </template>
@@ -44,6 +47,7 @@ export default {
   props: ['payment'],
   emits: ['close'],
   data: () => ({
+    itogs: [],
     client: null,
     payer: null,
     oldClient: null,
@@ -120,6 +124,16 @@ export default {
     } else {
       this.payer = null;
       this.oldPayer = null;
+    }
+    if (this.payment && this.payment.sum) {
+      this.$api.get(`get_itog/${this.payment.sum}`).then((result) => {
+        this.itogs = result.data
+        for(let i=0;i<this.itogs.length;i++) {
+          this.itogs[i].client = this.itogs[i].client.name
+        }
+        // this.itogs.client=result.data.client.name
+        console.log(result);
+      });
     }
   },
   mounted() {

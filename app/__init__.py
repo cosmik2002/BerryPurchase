@@ -43,7 +43,7 @@ def create_app(config_class=Config):
 
     ma.init_app(app)
     # db.init_app(app)
-    app.session = scoped_session(SessionLocal)
+    app.session = SessionLocal
     # enable CORS
     CORS(app)
     wa.init_app(app)

@@ -9,6 +9,7 @@ from database import SessionLocal
 
 class ZenMoney:
     def __init__(self, session):
+        self.counters = None
         self.session: Session = session
         self.key = os.getenv('ZENMONEY_KEY')
         self.account_title = 'MIR'
@@ -22,10 +23,17 @@ class ZenMoney:
         payer = Payers(name=payer_name)
         self.session.add(payer)
         self.session.commit()
+        self.counters['payers_add'] +=1
         return payer
 
 
     def get_transaction(self, from_date: datetime):
+        self.counters = {
+            'payers_add': 0,
+            'payments_update': 0,
+            'payments_add': 0,
+            'errors': []
+        }
         if not self.key:
             exit(0)
         api = Request(self.key)
@@ -43,6 +51,8 @@ class ZenMoney:
                 tra_date = datetime.datetime.strptime(tra.date, "%Y-%m-%d")
                 self.session.add(Payments(payer_id=payer.id, operation_code=tra.id, sum=tra.income, timestamp=tra_date, comment=tra.comment))
                 self.session.commit()
+                self.counters['payments_add'] +=1
+        return self.counters
 
 
 if __name__ == "__main__":

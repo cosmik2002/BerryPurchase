@@ -13,8 +13,8 @@ SessionRemote = scoped_session(SessionMakerRemote)
 
 engine = create_engine(
     Config.SQLALCHEMY_DATABASE_URI_NO_FLASK)
-SessionLocal = sessionmaker(autocommit=False, autoflush=True, bind=engine)
-Session = scoped_session(SessionLocal)
+_SessionLocal = sessionmaker(autocommit=False, autoflush=True, bind=engine)
+SessionLocal = scoped_session(_SessionLocal)
 
 metadata = MetaData()
 Base = declarative_base(metadata=metadata)

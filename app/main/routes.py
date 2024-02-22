@@ -3,6 +3,7 @@ import asyncio
 import datetime
 import json
 import os
+from dataclasses import asdict
 from pathlib import Path
 from typing import Optional
 
@@ -14,13 +15,12 @@ from app.main import bp
 from app.market_parser import MarketLoader
 from app.payment_messages import PaymentsProcessor
 from app.reports import Reports
-from app.whatsapp import WhatsApp
-from database import Session
 from app.wa_messages import get_messages, get_clients_links, load_customers, load_payers, load_clients, load_goods, \
     get_message_order
 from app.models import ClientsLinks, ClientsLinksSchema, payers_to_clients, Payers, Clients, Customers, \
     MessageOrdersSchema, SettingsSchema, Settings, Payments, PaymentsSchema, MessageOrders, Messages, MessagesSchema, \
-    Goods, GoodsSchema, Prices
+    Goods, GoodsSchema, Prices, Itog, ItogSchema
+from app.zenmoney import ZenMoney
 
 
 @bp.route('/messages', methods=['GET'])
@@ -305,7 +305,27 @@ def get_reports():
 def compare_reports():
     return Reports().compare_report()
 
+@bp.route('/itog_report', methods=['GET'])
+def itog_reports():
+    r = Reports()
+    r.fill_itog()
+    report = r.get_itog()
+    return report
 
+@bp.route('/zen_money', methods=['GET'])
+def zen_money():
+    start_date = current_app.session.query(Settings).filter(Settings.name == Settings.START_DATE).one()
+    start_date = datetime.datetime.strptime(start_date.value, "%d.%m.%Y")
+    result = ZenMoney(current_app.session).get_transaction(start_date)
+    return result
+
+@bp.route('/get_itog/<sum>', methods=['GET'])
+def get_itog(sum=None):
+    start_date = current_app.session.query(Settings).filter(Settings.name == Settings.START_DATE).one()
+    start_date = datetime.datetime.strptime(start_date.value, "%d.%m.%Y")
+    itog = current_app.session.query(Itog).filter(Itog.date==start_date, Itog.sum==sum, Itog.client_id!=None, Itog.good_id==None).all()
+    #asdict(itog[0]) #dataclass
+    return ItogSchema(many=True).dump(itog)
 @sock.route('/echo')
 def echo(ws):
     c = 0

@@ -1,5 +1,13 @@
+import json
 import os
+from datetime import datetime
 
+from sqlalchemy.orm import scoped_session
+
+import database
+
+import requests
+import simplejson
 import telebot
 from telebot.types import Message
 from app.models import Messages, Customers
@@ -13,12 +21,10 @@ class BerriesBot:
         key=os.getenv('TELEGRAM_BOT')
         self.bot = telebot.TeleBot(key)  # berries188bot
 
-    def getCustomer(self, message:Message):
-        cust = self.session.query(Customers).filter_by(wa_id=message.from_user).all()
+    def getCustomer(self, message:Message) -> Customers:
+        cust = self.session.query(Customers).filter_by(wa_id=message.from_user.id).all()
         if not cust:
-            sender = message.getContact()
-            cust = Customers(wa_id=sender.id._serialized, name=sender.name, number=sender.number,
-                             short_name=sender.shortName, push_name=sender.pushname)
+            cust = Customers(wa_id=message.from_user.id, name=message.from_user.full_name, number=message.from_user.username)
             self.session.add(cust)
             self.session.commit()
             self.counters['new_customers'] += 1
@@ -33,28 +39,34 @@ class BerriesBot:
             'upd_messages': 0,
             'success': False
         }
-        updates = self.bot.get_updates(#offset=(self.bot.last_update_id + 1),
+        updates = self.bot.get_updates(#offset=-1,#(self.bot.last_update_id + 1),
                                        timeout=1, long_polling_timeout=1)
-
-        self.bot.process_new_updates(updates)
+        # with open('updates.json', 'w') as fp:
+        #     simplejson.dump(updates, fp)
+        # exit(0)
 
         for upd in updates:
             if upd.channel_post is not None:
                 message: Message = upd.channel_post
-                Messages(wa_id=message.chat.id+"_"+message.id,
-                         from_id=message.from_user,
-                         chat_id=message.chat.id,
-                         timestamp=message.date,
-                         text=message.text)
                 # self.process_channel_msg(message, upd)
             else:
-                message = upd.message
+                message: Message = upd.message
                 chat_id = message.chat.id
-                if message.content_type == 'text':
-                    message = message.text
-                    self.logger.info("tg chat_id:{}, msg {}".format(chat_id, message))
+            if message.content_type == 'text':
+                cust = self.getCustomer(message)
+                ts = int(message.date)
+                msg_date = datetime.fromtimestamp(ts)#.strftime('%Y-%m-%d %H:%M:%S')
+                msg = Messages(wa_id=str(message.chat.id) + "_" + str(message.id),
+                         from_id=message.from_user.id,
+                         customer_id = cust.id,
+                         chat_id=message.chat.id,
+                         timestamp=msg_date,
+                         text=message.text)
+                self.session.add(msg)
+                self.session.commit()
                     # if upd.message.chat.id in self.chat_ids:
                     #     self.process_message(message, chat_id)
+        # self.bot.process_new_updates(updates)
 
 
     def getMessages(self):
@@ -62,4 +74,13 @@ class BerriesBot:
 
 
 if __name__ == "__main__":
-    BerriesBot.getMessages();
+
+    # key = os.getenv('TELEGRAM_BOT')
+    # url = f"https://api.telegram.org/bot{key}/getUpdates"
+    # result = requests.get(url)
+    # jsonr = result.json()
+    # if result.status_code == requests.codes.ok:
+    #     with open('result.json', 'w') as fp:
+    #         fp.write(json.dumps(jsonr['result']))
+
+    BerriesBot(database.SessionLocal).getMessages()

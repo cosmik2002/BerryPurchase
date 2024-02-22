@@ -1,5 +1,5 @@
 <template>
-    <q-item >
+    <q-item :class="itemClass(item)">
       <q-item-section >
         {{ item.id }}
         <q-item-label v-if="item.payer">

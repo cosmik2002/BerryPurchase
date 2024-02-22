@@ -13,7 +13,7 @@ from sqlalchemy import or_, func
 from sqlalchemy.orm import Query
 from tqdm import tqdm
 from app.pdf_read import ReadSberStatementPdf
-from database import SessionRemote, Session
+from database import SessionRemote, SessionLocal
 from app.models import smsMsg, Payments, Payers, PaymentsSchema, Settings
 from datetime import datetime as dt
 
@@ -31,7 +31,7 @@ def is_number(s):
 class PaymentsProcessor:
 
     def __init__(self):
-        self.session = Session()
+        self.session = SessionLocal
         self.counters = None
         self.banks = ['TINKOFF BANK', 'Tinkoff', 'Тинькофф Банк', 'Альфа Банк', 'ВТБ']
 

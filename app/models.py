@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+
 import marshmallow
 import marshmallow_sqlalchemy.schema
 import simplejson as simplejson
@@ -140,6 +142,20 @@ class Payments(Base):
     ost = column_property(func.sum(sum).over(order_by=timestamp))
     payer = relationship(Payers, foreign_keys=payer_id)
 
+@dataclass
+class Itog(Base):
+    __tablename__ = 'itog'
+    id: Column = Column(Integer, primary_key=True)
+    date: Column = Column(DateTime, index=True)
+    client_id: Column = Column(Integer, ForeignKey(Clients.id), nullable=True)
+    good_id: Column = Column(Integer, ForeignKey(Goods.id), nullable=True)
+    quantity: Column = Column(Numeric(15,2))
+    price: Column = Column(Numeric(15,2))
+    org: Column = Column(Numeric(15,2))
+    sum: Column = Column(Numeric(15,2))
+    payed_sum: Column = Column(Numeric(15,2))
+    payment_id: Column = Column(Integer, ForeignKey(Payments.id), nullable=True)
+    client = relationship(Clients, foreign_keys=client_id)
 
 class MessageOrders(Base):
     __tablename__ = 'message_orders'
@@ -176,6 +192,14 @@ class ClientsSchema(ma.SQLAlchemyAutoSchema):
 
     payers = fields.Nested('PayersSchema', many=True)
     customers = fields.Nested('CustomersSchema', many=True)
+
+class ItogSchema(ma.SQLAlchemyAutoSchema):
+    class Meta:
+        model = Itog
+        include_fk = True
+        # include_relationships = True
+        load_instance = True
+    client = fields.Nested(ClientsSchema(exclude=('customers', 'payers')))
 
 
 class CustomersSchema(ma.SQLAlchemyAutoSchema):

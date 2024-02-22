@@ -2,8 +2,8 @@
   <q-card>
   <q-btn
     color="teal"
-    label="Сравнить"
-    @click="compareReport()"
+    label="Итог"
+    @click="itogReport()"
     >
     <q-icon left size="3em" name="map" />
   </q-btn>
@@ -43,6 +43,10 @@
     </q-item>
   </q-list>
 </q-card>
+  <q-table
+  :rows="report"
+  >
+  </q-table>
 </template>
 
 <script>
@@ -54,12 +58,20 @@ export default {
   name: "ReportPage",
   components: {ClientReportItem},
   data: () => ({
-    report:{},
+    report:[],
     path: path
   }),
   methods:{
     compareReport(){
       axios.get(path + '/compare_reports').then((res) => {
+        this.report = res.data;
+      }).catch((error) => {
+        console.error(error);
+      });
+
+    },
+    itogReport(){
+      axios.get(path + '/itog_report').then((res) => {
         this.report = res.data;
       }).catch((error) => {
         console.error(error);

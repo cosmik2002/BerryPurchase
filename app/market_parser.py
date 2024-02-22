@@ -13,7 +13,7 @@ from config import Config
 # Config.SQLALCHEMY_DATABASE_URI_NO_FLASK = 'sqlite:///../clients.sqb'
 
 from app.models import Goods, Settings, Prices
-from database import Session
+from database import SessionLocal
 
 
 # @dataclass
@@ -33,7 +33,7 @@ class MarketLoader:
         process = subprocess.run(r"scrapy runspider MarketParser\spiders\market.py", cwd=cwd)
         if process.returncode != 0:
             return {'res': process.stdout or '' + process.stderr or ''}
-        self.session = Session()
+        self.session = SessionLocal
         self.session.query(Goods).update({'active': 0})
         self.session.commit()
         with open(full_file_name, 'r', encoding='utf-8') as f:

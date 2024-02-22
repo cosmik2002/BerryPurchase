@@ -2,6 +2,7 @@
   <q-table
     :columns="columns"
     :rows="goods"
+    wrap-cells
     virtual-scroll
     style="max-height: 90vh"
     v-model:pagination="pagination"
@@ -64,7 +65,7 @@ export default {
       {
         name: 'name',
         label: 'Название',
-        style: 'width: 40%',
+        // style: 'max-width: 10%',
         align: 'left',
         field: 'name'
       }, {

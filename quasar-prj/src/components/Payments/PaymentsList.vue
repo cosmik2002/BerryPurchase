@@ -32,7 +32,7 @@
       <q-icon name="search"/>
     </template>
   </q-input>
-  <q-list>
+  <q-list separator>
     <payment-c
       v-for="item in payments"
       :key="item.id"
@@ -40,7 +40,6 @@
       v-ripple:red
       clickable
       @click="editPayer(item)"
-      :class="itemClass(item)"
       :is-ost="!!beg_sum"
     >
     </payment-c>

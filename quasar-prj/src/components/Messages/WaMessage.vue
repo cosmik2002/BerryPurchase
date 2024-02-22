@@ -1,4 +1,5 @@
 <template>
+  <q-card>
   <q-item
     :class="itemClass(item)">
     <q-item-section>
@@ -28,6 +29,7 @@
       <q-btn round icon="face" @click="$emit('show_customer_to_client_dialog', item)"></q-btn>
     </q-item-section>
   </q-item>
+    </q-card>
 </template>
 <script>
 import {Message} from "src/store/berries_store/models";

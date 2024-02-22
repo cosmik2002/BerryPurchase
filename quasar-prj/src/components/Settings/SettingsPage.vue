@@ -11,6 +11,8 @@
   <q-btn @click="parseNotify($event)">Разобрать уведомления</q-btn>
   <q-btn @click="getPriceList">getPriceList</q-btn>
   <q-separator/>
+  <q-btn @click="zenMoney"><img src="~assets/zen_money.svg" alt="zen money" style="width:100px"/></q-btn>
+  <q-separator/>
   <q-btn @click="addRow" icon="add"></q-btn>
   <q-list>
     <setting-item v-for="item in settings" :key="item.id" :item="item"></setting-item>
@@ -67,6 +69,14 @@ export default {
     getPriceList(evt) {
       this.upload_result = '';
       axios.get(path + '/get_price_list').then((data) => {
+        this.upload_result = data.data;
+      }).catch((error) => {
+        console.error(error);
+      });
+    },
+    zenMoney(evt) {
+      this.upload_result = '';
+      axios.get(path + '/zen_money').then((data) => {
         this.upload_result = data.data;
       }).catch((error) => {
         console.error(error);

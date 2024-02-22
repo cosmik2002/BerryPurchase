@@ -14,7 +14,7 @@ from javascript import require, On
 import qrcode
 
 from app.models import Messages, Customers, Settings
-from database import Session
+from database import SessionLocal
 
 
 # Обертка node <-> python
@@ -79,7 +79,7 @@ class WhatsApp:
 
     def start_client(self):
         self.ready = False
-        self.session = Session()
+        self.session = SessionLocal
         Client = require('whatsapp-web.js', '^1.23').Client
         LocalAuth = require('whatsapp-web.js', '^1.23').LocalAuth
         # self.session = session
