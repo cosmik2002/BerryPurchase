@@ -8,10 +8,10 @@ export default class Good extends Model {
       id: this.attr(null),
       name: this.attr(null),
       variants: this.attr(null),
-      price: this.attr(null),
+      price: this.number(null),
       url: this.attr(null),
       image: this.attr(null),
-      org_price: this.attr(null),
+      org_price: this.number(null),
       type: this.attr(null),
       active: this.attr(null),
       short_name: this.attr(null)

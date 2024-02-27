@@ -37,7 +37,7 @@
       </q-list>
     </q-drawer>
 
-    <q-page-container style="max-width:1500px">
+    <q-page-container style="max-width:2500px">
       <router-view/>
     </q-page-container>
   </q-layout>
@@ -50,33 +50,33 @@ import EssentialLink from 'components/EssentialLink.vue'
 const linksList = [
   {
     title: 'Сообщения',
-    caption: 'Messages',
+    // caption: 'Messages',
     icon: 'list',
     link: '/messages'
   },
   {
-    title: 'Payments',
+    title: 'Платежи',
     icon: 'credit_card',
     link: '/payments'
   },
   {
-    title: 'Clients',
+    title: 'Клиенты',
     icon: 'record_voice_over',
     link: '/clients'
   },
   {
-    title: 'Settings',
+    title: 'Служебные',
     icon: 'settings',
     link: '/settings'
   },
   {
-    title: 'goods',
-    icon: 'gavel',
+    title: 'Товары',
+    icon: 'shopping_basket',
     link: '/goods'
   },
   {
-    title: 'reports',
-    icon: 'gavel',
+    title: 'Отчеты',
+    icon: 'assignment',
     link: '/reports'
   }
 ]

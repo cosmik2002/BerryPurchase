@@ -1,24 +1,18 @@
 # sanity check route
-import asyncio
 import datetime
 import json
-import os
-from dataclasses import asdict
-from pathlib import Path
-from typing import Optional
 
-from flask import request, current_app, send_from_directory
+from flask import request, current_app
 
 from app import wa, sock
 from app.g_sheets import gSheets
 from app.main import bp
 from app.market_parser import MarketLoader
 from app.payment_messages import PaymentsProcessor
-from app.reports import Reports
 from app.wa_messages import get_messages, get_clients_links, load_customers, load_payers, load_clients, load_goods, \
     get_message_order
-from app.models import ClientsLinks, ClientsLinksSchema, payers_to_clients, Payers, Clients, Customers, \
-    MessageOrdersSchema, SettingsSchema, Settings, Payments, PaymentsSchema, MessageOrders, Messages, MessagesSchema, \
+from app.models import ClientsLinks, ClientsLinksSchema, Payers, Clients, Customers, \
+    MessageOrdersSchema, SettingsSchema, Settings, PaymentsSchema, MessageOrders, Messages, MessagesSchema, \
     Goods, GoodsSchema, Prices, Itog, ItogSchema
 from app.zenmoney import ZenMoney
 
@@ -138,8 +132,12 @@ def payers():
     return load_payers(current_app.session)
 
 
+@bp.route('/goods/<good_id>', methods=['DELETE'])
 @bp.route('/goods', methods=['GET', 'POST'])
-def goods():
+def goods(good_id=None):
+    if request.method == 'DELETE':
+        current_app.session.query(Goods).filter(Goods.id==good_id).delete()
+        current_app.session.commit()
     if request.method == 'POST':
         data = request.get_json()
         if data.get('id'):
@@ -160,12 +158,13 @@ def goods():
     return load_goods(current_app.session)
 
 
-@bp.route('/payments', methods=['GET', 'POST'])
-def payments():
+@bp.route('/payments', methods=['GET'])
+@bp.route('/payments/<payment_id>', methods=['POST'])
+def payments(payment_id = None):
     if request.method == 'POST':
         data = request.get_json()
-        payment = current_app.session.query(Payments).get(data['payment_id'])
-        payment.payer_id = data['payer_id']
+        payment = PaymentsSchema(exclude=('payer',)).load(data, session=current_app.session)
+        current_app.session.add(payment)
         current_app.session.commit()
         return PaymentsSchema().dumps(payment)
     page = request.args.get('page', type=int)
@@ -293,24 +292,7 @@ def get_price_list():
     return res or ''
 
 
-@bp.route('/get_reports', methods=['GET'])
-def get_reports():
-    Reports().create_report()
-    # uploads = os.path.join(current_app.root_path, current_app.config['UPLOAD_FOLDER'])
-    uploads = os.path.join(os.getcwd(), current_app.config['UPLOAD_FOLDER'])
-    return send_from_directory(path="report.xlsx", directory=uploads)
 
-
-@bp.route('/compare_reports', methods=['GET'])
-def compare_reports():
-    return Reports().compare_report()
-
-@bp.route('/itog_report', methods=['GET'])
-def itog_reports():
-    r = Reports()
-    r.fill_itog()
-    report = r.get_itog()
-    return report
 
 @bp.route('/zen_money', methods=['GET'])
 def zen_money():
@@ -319,13 +301,6 @@ def zen_money():
     result = ZenMoney(current_app.session).get_transaction(start_date)
     return result
 
-@bp.route('/get_itog/<sum>', methods=['GET'])
-def get_itog(sum=None):
-    start_date = current_app.session.query(Settings).filter(Settings.name == Settings.START_DATE).one()
-    start_date = datetime.datetime.strptime(start_date.value, "%d.%m.%Y")
-    itog = current_app.session.query(Itog).filter(Itog.date==start_date, Itog.sum==sum, Itog.client_id!=None, Itog.good_id==None).all()
-    #asdict(itog[0]) #dataclass
-    return ItogSchema(many=True).dump(itog)
 @sock.route('/echo')
 def echo(ws):
     c = 0

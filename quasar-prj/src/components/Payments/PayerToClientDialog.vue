@@ -136,7 +136,7 @@ export default {
       });
     }
   },
-  mounted() {
+  created() {
     Client.api().get('clients');
     Payer.api().get('payers');
   }

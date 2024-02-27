@@ -1,9 +1,10 @@
 from dataclasses import dataclass
 
 import marshmallow
-import marshmallow_sqlalchemy.schema
+# import redis
 import simplejson as simplejson
-from marshmallow import EXCLUDE
+from flask import current_app
+from marshmallow import EXCLUDE, INCLUDE
 from marshmallow_sqlalchemy import fields, auto_field
 from sqlalchemy import func, Column, Integer, String, ForeignKey, LargeBinary, Numeric, DateTime, Time, Text, Table, \
     JSON, Boolean
@@ -12,7 +13,7 @@ from sqlalchemy.orm import relationship, configure_mappers, column_property, ali
 
 from database import Base
 import marshmallow_sqlalchemy as ma
-
+# import rq
 
 # alembic revision --autogenerate -m "card_number_field"
 # alembic upgrade head
@@ -139,11 +140,14 @@ class Payments(Base):
     date_processed: Column = Column(DateTime)
     comment: Column = Column(Text)
     sum: Column = Column(Numeric(15,2))
+    not_use: Column = Column(Boolean)
     ost = column_property(func.sum(sum).over(order_by=timestamp))
     payer = relationship(Payers, foreign_keys=payer_id)
 
 @dataclass
 class Itog(Base):
+    CALCULATED = 1
+    MANUAL = 2
     __tablename__ = 'itog'
     id: Column = Column(Integer, primary_key=True)
     date: Column = Column(DateTime, index=True)
@@ -155,7 +159,26 @@ class Itog(Base):
     sum: Column = Column(Numeric(15,2))
     payed_sum: Column = Column(Numeric(15,2))
     payment_id: Column = Column(Integer, ForeignKey(Payments.id), nullable=True)
+    type: Column = Column(Integer)
     client = relationship(Clients, foreign_keys=client_id)
+
+# class Task(Base):
+#     id = Column(String(36), primary_key=True)
+#     name = Column(String(128), index=True)
+#     description = Column(String(128))
+#     # user_id = Column(Integer, ForeignKey('user.id'))
+#     complete = Column(Boolean, default=False)
+#
+#     def get_rq_job(self):
+#         try:
+#             rq_job = rq.job.Job.fetch(self.id, connection=current_app.redis)
+#         except (redis.exceptions.RedisError, rq.exceptions.NoSuchJobError):
+#             return None
+#         return rq_job
+#
+#     def get_progress(self):
+#         job = self.get_rq_job()
+#         return job.meta.get('progress', 0) if job is not None else 100
 
 class MessageOrders(Base):
     __tablename__ = 'message_orders'
@@ -226,6 +249,7 @@ class PaymentsSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = Payments
         include_fk = True
+        unknown = EXCLUDE #исключаем незнакомые поля (ругался на ost)
         # include_relationships = True
         json_module = simplejson
         load_instance = True

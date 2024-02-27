@@ -18,6 +18,7 @@ export default class Payment extends Model {
       operation_code: this.attr(''),
       date_processed: this.attr(''),
       comment: this.attr(''),
+      not_use: this.attr(''),
       payer: this.belongsTo(Payer, 'payer_id'),
     }
   }

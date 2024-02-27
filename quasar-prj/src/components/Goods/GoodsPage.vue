@@ -5,16 +5,19 @@
     wrap-cells
     virtual-scroll
     style="max-height: 90vh"
+    :visible-columns = "visColumns()"
     v-model:pagination="pagination"
     :rows-per-page-options="[0]"
+    :filter="filter"
   >
           <template v-slot:body="props">
             <q-tr :props="props">
               <q-td v-for="col in columns"
                     :key="col.name"
                     :props="props">
-               <span v-if="col.name==='url'">
-                <a :href="props.row[col.name]" target="_blank">link</a>
+               <span v-if="col.name==='name'">
+                <a v-if= "props.row['url']" :href="props.row['url']" target="_blank">{{ props.row[col.name] }}</a>
+                 <div v-else>{{ props.row[col.name] }}</div>
                </span>
                <span v-else-if="col.name==='image'">
 <!--                <img :src="props.row[col.name]"/>-->
@@ -43,24 +46,59 @@
                    @update:model-value="updRow(props.row, {active: $event})">
                   </q-checkbox>
                 </span>
+                <span v-else-if="col.name==='actions'">
+                          <q-icon name="more_horiz"
+          class="cursor-pointer">
+          <q-menu>
+            <q-item clickable v-close-popup icon="delete"
+                     @click="deleteGood(props.row, props.rowIndex)">
+             <q-item-section avatar si>
+              <q-icon name="delete"></q-icon>
+               </q-item-section>
+              <q-item-section>Удалить</q-item-section>
+            </q-item>
+            <q-item clickable v-close-popup
+                     @click="editGood(props.row, props.rowIndex)">
+             <q-item-section avatar si>
+              <q-icon name="edit"></q-icon>
+               </q-item-section>
+              <q-item-section>Редактировать</q-item-section>
+            </q-item>
+          </q-menu>
+        </q-icon>
+                </span>
                 <span v-else>{{ props.row[col.name] }}</span>
               </q-td>
             </q-tr>
           </template>
+          <template v-slot:top-right>
+        <q-input borderless dense debounce="300" v-model="filter" placeholder="Search">
+          <template v-slot:append>
+            <q-icon name="search" />
+          </template>
+        </q-input>
+      </template>
   </q-table>
+    <good-dialog v-model="good_dialog" :good="good" @close="good_dialog=false"></good-dialog>
+
 </template>
 
 <script>
 import {Goods, MessageOrder} from
     "src/store/berries_store/models";
 import axios from "axios";
+import GoodDialog from "components/Messages/GoodDialog.vue";
 
 const path = process.env.API_URL;
 
 export default {
   name: "GoodsPage",
+  components: {GoodDialog},
   data: () => ({
     pr: null,
+    good_dialog: false,
+    good: {},
+    filter: '',
     columns: [
       {
         name: 'name',
@@ -90,24 +128,19 @@ export default {
         label: 'Тип',
         field: 'type',
       }, {
-        name: 'url',
-        label: 'Ссылка',
-        field: 'url',
-      }, {
-        name: 'image',
-        label: 'Картинка',
-        field: 'image',
+        name: 'actions',
+        label: 'Действия',
       },
     ],
     pagination: {
       rowsPerPage: 0
     },
-    goods: []
+    // goods: []
   }),
   computed: {
-    /* goods(){
+     goods(){
        return Goods.query().all();
-     }*/
+     }
   },
   methods: {
     updRow(row, data) {
@@ -126,13 +159,30 @@ export default {
           this.goods[idx] = result.entities.goods[0];
       });
     },
+    visColumns() {
+      const cols = [];
+      const xsHidCols = ['variants', 'org_price', 'price', 'type', 'active'];
+      for(let i in this.columns ) {
+        if (!this.$q.screen.xs || xsHidCols.indexOf(this.columns[i].name) === -1) {
+        cols.push(this.columns[i].name);
+      }
+      }
+      return cols
+    },
+    async editGood(item, index) {
+      this.good = item;
+      this.good_dialog = true;
+    },
+    deleteGood(row) {
+      Goods.api().delete("goods/" + row.id, {delete: row.id});
+    },
     getGoods() {
-//       Goods.api().get('goods');
-      axios.get(path + '/goods').then((res) => {
-        this.goods = res.data;
-      }).catch((error) => {
-        console.error(error);
-      });
+      Goods.api().get('goods');
+      // axios.get(path + '/goods').then((res) => {
+      //   this.goods = res.data;
+      // }).catch((error) => {
+      //   console.error(error);
+      // });
     }
   },
   created() {

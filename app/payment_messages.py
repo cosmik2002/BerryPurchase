@@ -14,7 +14,7 @@ from sqlalchemy.orm import Query
 from tqdm import tqdm
 from app.pdf_read import ReadSberStatementPdf
 from database import SessionRemote, SessionLocal
-from app.models import smsMsg, Payments, Payers, PaymentsSchema, Settings
+from app.models import smsMsg, Payments, Payers, PaymentsSchema, Settings, Clients
 from datetime import datetime as dt
 
 PayerData = namedtuple('PayerData', 'name card_number text bank_name')
@@ -79,7 +79,8 @@ class PaymentsProcessor:
             query = query.filter(Payments.timestamp >= start_date)
         if src:
             query = query.join(Payers, isouter=True)
-            query = query.filter(or_(Payers.card_number.like(f"%{src}%"), Payments.comment.like(f"%{src}%"),
+            query = query.join(Clients,Payers.clients, isouter=True)
+            query = query.filter(or_(Clients.name.like(f"%{src}%"), Payers.name.like(f"%{src}%"), Payers.card_number.like(f"%{src}%"), Payments.comment.like(f"%{src}%"),
                                      Payments.sum == src if is_number(src) else False))
         query = query.order_by(Payments.timestamp.desc())
         if page_size:
@@ -87,7 +88,7 @@ class PaymentsProcessor:
             if page:
                 query = query.offset((page - 1) * page_size)
         payments = query.all()
-        payments_schema = PaymentsSchema(many=True, exclude=('payer',))
+        payments_schema = PaymentsSchema(many=True) #, exclude=('payer',))
         output = payments_schema.dumps(payments)
         return output
 

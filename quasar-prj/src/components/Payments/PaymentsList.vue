@@ -38,8 +38,7 @@
       :key="item.id"
       :item="item"
       v-ripple:red
-      clickable
-      @click="editPayer(item)"
+      @show_payer_to_client_dialog="editPayer(item)"
       :is-ost="!!beg_sum"
     >
     </payment-c>

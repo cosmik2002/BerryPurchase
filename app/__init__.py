@@ -3,6 +3,7 @@ import os
 import sys
 from logging.handlers import RotatingFileHandler
 
+# import rq
 from flask import Flask
 from flask_cors import CORS
 from flask_marshmallow import Marshmallow
@@ -11,6 +12,7 @@ from flask_marshmallow import Marshmallow
 # from app import routes, models
 # configuration
 from flask_sock import Sock
+# from redis import Redis
 from sqlalchemy.orm import scoped_session
 
 from app.whatsapp import WhatsApp
@@ -47,9 +49,12 @@ def create_app(config_class=Config):
     # enable CORS
     CORS(app)
     wa.init_app(app)
-
+    # app.redis = Redis.from_url(app.config['REDIS_URL'])
+    # app.task_queue = rq.Queue('berries-tasks', connection=app.redis)
     from app.main import bp as main_bp
     app.register_blueprint(main_bp)
+    from app.reportsBp import  bp as reports_bp
+    app.register_blueprint(reports_bp)
 
     @app.teardown_appcontext
     def remove_session(*args, **kwargs):
