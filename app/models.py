@@ -196,6 +196,7 @@ class Settings(Base):
     START_DATE = 'start_date'
     SHEET_NAME = 'sheet_name'
     WA_CLIENT = 'wa_client'
+    TELEGRAMM = 'telegramm'
     MARKET_LOAD = 'market_load'
     id: Column = Column(Integer, primary_key=True)
     name: Column = Column(Text)
@@ -266,8 +267,8 @@ class MessagesSchema(ma.SQLAlchemyAutoSchema):
         load_instance = True
 
     order_descr = marshmallow.fields.Str()
-    customer = fields.Nested(CustomersSchema())
-    for_client = fields.Nested(ClientsSchema())
+    customer = fields.Nested(CustomersSchema)
+    for_client = fields.Nested(ClientsSchema, allow_none=True)
     message_order = fields.Nested('MessageOrdersSchema', many=True)
 
 

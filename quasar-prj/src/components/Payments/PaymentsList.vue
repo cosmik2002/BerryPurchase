@@ -124,7 +124,11 @@ export default {
         params += (params !== '' ? '&' : '') + `beg_sum=${this.beg_sum}`;
       }
       url += '?' + params;
-      Payment.api().get(url, {persistBy: 'create'});
+      Payment.api().get(url, {
+        persistBy: 'create',
+        persistOptions: {
+          insertOrUpdate: ['payer', 'clients']
+        }});
     },
     itemClass(item) {
       if (item.payer && item.payer.clients.length > 0) {

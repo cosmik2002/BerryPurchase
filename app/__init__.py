@@ -1,7 +1,9 @@
+import asyncio
 import logging
 import os
 import sys
 from logging.handlers import RotatingFileHandler
+from threading import Thread
 
 # import rq
 from flask import Flask
@@ -15,6 +17,7 @@ from flask_sock import Sock
 # from redis import Redis
 from sqlalchemy.orm import scoped_session
 
+from app.telegram_msg import BerriesBot
 from app.whatsapp import WhatsApp
 from config import Config
 from database import SessionLocal
@@ -25,6 +28,8 @@ ma = Marshmallow()
 #env = DotEnv()
 wa = WhatsApp()
 sock = Sock()
+# bb = BerriesBot()
+
 
 def create_app(config_class=Config):
     # instantiate the app
@@ -60,6 +65,12 @@ def create_app(config_class=Config):
     def remove_session(*args, **kwargs):
         app.session.close()
 
+    print('tg start')
+    # loop = asyncio.get_event_loop()
+    # asyncio.set_event_loop(loop)
+    # t = Thread(target=bb.start_polling)
+    # t.start()
+    print('app')
     return app
 
 

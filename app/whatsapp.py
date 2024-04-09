@@ -84,7 +84,11 @@ class WhatsApp:
         LocalAuth = require('whatsapp-web.js', '^1.23').LocalAuth
         # self.session = session
         self.client = Client({
-            'authStrategy': LocalAuth()
+            'authStrategy': LocalAuth(),
+            'webVersionCache': {
+                'type': 'remote',
+                'remotePath': "https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.2410.1.html"
+        }
         })
 
         @On(self.client, 'qr')

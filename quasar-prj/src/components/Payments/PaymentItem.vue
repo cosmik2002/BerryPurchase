@@ -30,8 +30,7 @@
                 @update:model-value="updRow(item, {not_use: $event})"/>
             </q-item>
             <q-item clickable v-close-popup>
-              <div
-                     @click="$emit('show_payer_to_client_dialog')">Клиент</div>
+              <div @click="$emit('show_payer_to_client_dialog')">Клиент</div>
             </q-item>
           </q-menu>
         </q-icon>

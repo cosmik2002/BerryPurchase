@@ -104,7 +104,9 @@ def load_payers(session):
     return output
 
 
-def load_goods(session, active=False):
+def load_goods(session, active=False, id=None):
+    if id:
+        return GoodsSchema().dumps(session.query(Goods).get(id))
     if active:
         goods = session.query(Goods).filter(Goods.active == True).all()
     else:

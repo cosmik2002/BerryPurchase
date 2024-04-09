@@ -1,7 +1,7 @@
 import datetime
 import os
 
-from flask import send_from_directory, current_app
+from flask import send_from_directory, current_app, request
 
 from app.models import Settings, Itog, ItogSchema
 from app.reportsBp.reports import Reports
@@ -26,10 +26,15 @@ def client_payment_report():
 
 @bp.route('/get_reports', methods=['GET'])
 def get_reports():
-    Reports().create_report()
+    Reports().create_report(True)
     # uploads = os.path.join(current_app.root_path, current_app.config['UPLOAD_FOLDER'])
     uploads = os.path.join(os.getcwd(), current_app.config['UPLOAD_FOLDER'])
     return send_from_directory(path="report.xlsx", directory=uploads)
+
+@bp.route('/get_orders/<client_id>/<good_id>', methods=['GET'])
+def get_orders(client_id, good_id=None):
+
+    return ''
 
 
 @bp.route('/get_itog/<sum>', methods=['GET'])

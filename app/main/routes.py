@@ -4,7 +4,7 @@ import json
 
 from flask import request, current_app
 
-from app import wa, sock
+from app import wa, sock#, bb
 from app.g_sheets import gSheets
 from app.main import bp
 from app.market_parser import MarketLoader
@@ -132,7 +132,7 @@ def payers():
     return load_payers(current_app.session)
 
 
-@bp.route('/goods/<good_id>', methods=['DELETE'])
+@bp.route('/goods/<good_id>', methods=['GET', 'DELETE'])
 @bp.route('/goods', methods=['GET', 'POST'])
 def goods(good_id=None):
     if request.method == 'DELETE':
@@ -155,7 +155,7 @@ def goods(good_id=None):
     #     data = request.get_json()
     #     good = current_app.session.query(Goods).get(data['id'])
     #     print(data)
-    return load_goods(current_app.session)
+    return load_goods(current_app.session, False, good_id)
 
 
 @bp.route('/payments', methods=['GET'])
@@ -213,18 +213,19 @@ def customers_to_clients():
     response_object = {'status': 'success'}
     if request.method == 'POST':
         data = request.get_json()
-        if data.get('client_id'):
+        if data.get('for_client_id'):
+            message: Messages = current_app.session.query(Messages).get(data['message_id'])
+            client: Clients = current_app.session.query(Clients).get(data['for_client_id'])
+            message.for_client_id = client.id
+            current_app.session.commit()
+        elif data.get('client_id'):
             customer: Customers = current_app.session.query(Customers).get(data['customer_id'])
             client: Clients = current_app.session.query(Clients).get(data['client_id'])
             if customer.clients and customer.clients[0].id != client.id:
                 customer.clients.remove(customer.clients[0])
-            customer.clients.append(client)
-            current_app.session.commit()
-        elif data.get('for_client_id'):
-            message:Messages = current_app.session.query(Messages).get(data['message_id'])
-            client: Clients = current_app.session.query(Clients).get(data['for_client_id'])
-            message.for_client_id = client.id
-            current_app.session.commit()
+            if not customer.clients:
+                customer.clients.append(client)
+                current_app.session.commit()
         response_object = {**response_object, **data}
         return response_object
 
@@ -301,14 +302,15 @@ def zen_money():
     result = ZenMoney(current_app.session).get_transaction(start_date)
     return result
 
-@sock.route('/echo')
-def echo(ws):
+@bp.route('/echo')
+def echo():
     c = 0
-    while True:
-        data = ws.receive()
-        c += 1
+    bb.stop()
+    # while True:
+    #     data = ws.receive()
+    #     c += 1
         # if c % 10000 == 0:
         # print(c)
         # ws.send(c)
-        if data:
-            ws.send(data)
+        # if data:
+        #     ws.send(data)

@@ -40,15 +40,16 @@ class gSheets:
         df = df.replace('', None)
         start_col = 2 if df.values[0][1] is None else 1
         clients = wks.get_values('A', 'A')
+        left_top_format_val = "Имя"
         clients = list(itertools.chain.from_iterable(clients))
-        last_row = df[(df['имя'].values != None)].index[-1]  # name col last index
+        last_row = df[(df[left_top_format_val].values != None)].index[-1]  # name col last index
         price_row = df.iloc[1, :].values
         last_col = len(price_row[price_row != None])
         # last_col = len(df.iloc[1, :][(df.iloc[1, :].values != None)]) #price row len
         '''melt - преобразование столбцов в строки, 
-        id_vars=['имя'] - столбец с ключами, 
+        id_vars=[left_top_format_val] - столбец с ключами, 
         value_vars=df.columns[start_col:last_col] - все остальние стобцы (названия ягод) преобразовываем в один (variable) со значениями - названиями колонок'''
-        good_tr = df[2:last_row + 1].melt(id_vars=['имя'], value_vars=df.columns[start_col:last_col])
+        good_tr = df[2:last_row + 1].melt(id_vars=[left_top_format_val], value_vars=df.columns[start_col:last_col])
         # меняем , на .
         good_tr = good_tr.replace(to_replace={'value': r','}, value={'value': '.'}, regex=True)
         good_tr = good_tr.replace(to_replace={'value': ' '}, value={'value': None})
@@ -56,7 +57,7 @@ class gSheets:
         потом группируем (groupby(name)), объединяя res через ,(agg) '''
         cli_itog = good_tr[good_tr['value'].astype('float') > 0].assign(
             res=lambda x: x['variable'].astype(str) + "-" + x['value'].astype('float').map('{:g}'.format)).groupby(
-            'имя').agg({'res': lambda x: ",".join(x)})
+            left_top_format_val).agg({'res': lambda x: ",".join(x)})
         df.iloc[2:last_row + 1, start_col:last_col] = df.iloc[2:last_row + 1, start_col:last_col].replace(' ', value=None)
         good_itog = df.iloc[2:last_row + 1, start_col:last_col].replace(regex=',', value='.').astype('float').sum()
         res = pd.concat([cli_itog, good_itog])
