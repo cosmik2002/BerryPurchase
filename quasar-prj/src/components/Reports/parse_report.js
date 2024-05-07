@@ -7,6 +7,9 @@ export function parseReport(data) {
     label: 'name',
     field: 'name',
   });
+  const sumRow = {
+    name: "итог"
+  };
   for (const client in data) {
     let client_id;// = data[client]["('', 'client_id', '', '', '')"];
     let comment;
@@ -35,6 +38,10 @@ export function parseReport(data) {
           value: cli_data[good],
           // comment: comment
         };
+        let key_sum = (sumRow[key] && sumRow[key].value) ?? 0;
+        sumRow[key] = {
+          value: key_sum + cli_data[good]
+        }
         if (!idxCol[key]) {
           let col = {
             name: key,
@@ -53,5 +60,6 @@ export function parseReport(data) {
     }
     rows.push(row)
   }
+  rows.push(sumRow)
   return {rows: rows, columns: columns};
 }
