@@ -62,6 +62,11 @@
       <q-td :props="props">
         <div
           @click="rowClick(props)">
+          <q-icon v-if="props.value.comment" name="bookmark" color="red">
+            <q-tooltip>
+              {{ props.value.comment }}
+            </q-tooltip>
+          </q-icon>
           {{ props.value ? props.value.value : '' }}
         </div>
       </q-td>
@@ -89,7 +94,10 @@
     </template>
   </q-table>
   <good-dialog v-model="good_dialog" :good="good" @close="good_dialog=false"></good-dialog>
-
+<q-dialog v-model="itog_dialog">
+  <q-table
+  :rows="itog"/>
+</q-dialog>
 </template>
 
 <script>
@@ -111,6 +119,8 @@ export default {
     columns: [],
     path: path,
     good_dialog: false,
+    itog_dialog: false,
+    itog:[],
     good: {}
   }),
   methods: {
@@ -129,13 +139,20 @@ export default {
       const cell = props.row[props.col.name]
       if (cell.good_id) {
         //на клеку с кол-вом
-        axios.get(path + '/get_orders/' + cell.good_id + '/' + client_id).then((res) => {
-          this.report = res.data;
+        axios.get(path + '/get_orders/' + client_id + '/' + cell.good_id).then((res) => {
+          this.itog = res.data;
+          this.itog_dialog = true;
         }).catch((error) => {
           console.error(error);
         });
       } else {
         //на клетку с клиентом
+        axios.get(path + '/get_orders/' + client_id).then((res) => {
+          this.itog = res.data;
+          this.itog_dialog = true;
+        }).catch((error) => {
+          console.error(error);
+        });
       }
     },
     compareReport() {

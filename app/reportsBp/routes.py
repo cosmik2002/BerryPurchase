@@ -3,7 +3,7 @@ import os
 
 from flask import send_from_directory, current_app, request
 
-from app.models import Settings, Itog, ItogSchema
+from app.models import Settings, Itog, ItogSchema, MessageOrders, Messages
 from app.reportsBp.reports import Reports
 from app.reportsBp import bp
 
@@ -31,10 +31,10 @@ def get_reports():
     uploads = os.path.join(os.getcwd(), current_app.config['UPLOAD_FOLDER'])
     return send_from_directory(path="report.xlsx", directory=uploads)
 
+@bp.route('/get_orders/<client_id>', methods=['GET'])
 @bp.route('/get_orders/<client_id>/<good_id>', methods=['GET'])
 def get_orders(client_id, good_id=None):
-
-    return ''
+    return Reports().getMessages(client_id, good_id)
 
 
 @bp.route('/get_itog/<sum>', methods=['GET'])

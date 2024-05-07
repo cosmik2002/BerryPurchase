@@ -51,6 +51,14 @@
           </template>
         </q-table>
       </q-card-section>
+      <q-card-section>
+        <q-input
+          debounce="1000"
+          :model-value="comment"
+          type="textarea"
+          autogrow
+          @update:model-value="updComment($event)"/>
+      </q-card-section>
       <q-card-actions>
         <q-btn @click="$emit('close')">Закрыть</q-btn>
       </q-card-actions>
@@ -61,7 +69,7 @@
 </template>
 
 <script>
-import {MessageOrder, Setting} from "src/store/berries_store/models";
+import {Message, MessageOrder, Setting} from "src/store/berries_store/models";
 import GoodDialog from "components/Messages/GoodDialog.vue";
 import AddGoodDialog from "components/Messages/AddGoodDialog.vue";
 import {api} from "boot/axios";
@@ -78,6 +86,7 @@ export default {
     good_dialog: false,
     add_good_dialog: false,
     message_order_row: {},
+    comment: '',
     pagination:{
       rowsPerPage:0
     },
@@ -126,6 +135,11 @@ export default {
       this.getMessageOrder();
       console.log("show");
     },
+    updComment(event) {
+      let msg = {...this.message};
+      msg.props = msg.props ? {...msg.props, comment: event} : { comment: event};
+      Message.api().post('messages/' + this.message.id, msg);
+    },
     updRow(row, data) {
       MessageOrder.api().post('message_order', {
         id: row.id, ...data
@@ -157,6 +171,8 @@ export default {
       } else {
         MessageOrder.api().get('message_order/' + this.message.id, {persistBy: 'create'})
       }
+        this.comment = this.message.props.comment;
+
     }
   },
   beforeUpdate() {

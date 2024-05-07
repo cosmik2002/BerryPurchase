@@ -23,6 +23,8 @@
         </q-checkbox>
       </q-item-label>
       <q-item-label>
+         <q-chip v-if="item.props.comment"
+         color="orange" text-color="white" >{{item.props.comment}}</q-chip>
       </q-item-label>
     </q-item-section>
     <q-item-section side top>
