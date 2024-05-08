@@ -15,7 +15,7 @@ from sqlalchemy.orm import aliased, Session
 
 from app.g_sheets import gSheets
 from app.models import MessageOrders, Messages, Goods, Settings, Clients, Customers, Itog, Payers, Payments, \
-    customers_to_clients
+    customers_to_clients, payers_to_clients
 from datetime import datetime as dt
 import json
 
@@ -50,10 +50,8 @@ class Reports:
         query = select(Messages.text.label("1Сообщение"), Messages.props['comment'].as_string().label("4Коммент"),
                        func.strftime('%d.%m.%Y %H:%M', Messages.timestamp).label("2Дата"), func.aggregate_strings(Goods.name+'-'+func.cast(MessageOrders.quantity, String), ';').label("3Заказ"))\
             .select_from(MessageOrders).join(Messages).join(Goods) \
-            .join(Customers).join(Clients, Customers.clients, isouter=True).join(
-            Messages.for_client.of_type(for_client), isouter=True).filter(Messages.timestamp >= start_date,
-                                                                          func.coalesce(for_client.id,
-                                                                                        Clients.id) == int(client_id),
+            .join(Customers).join(customers_to_clients, isouter=True).join(Clients, func.coalesce(Messages.for_client_id, customers_to_clients.c.client_id) == Clients.id) \
+            .filter(Messages.timestamp >= start_date, func.coalesce(Clients.duplicate_for, Clients.id) == int(client_id),
                                                                           Goods.id == func.coalesce(good_id, Goods.id)).group_by(text("1, 2, 3"))
         results = [dict(row) for row in current_app.session.execute(query).mappings()]
         return results
@@ -93,8 +91,9 @@ class Reports:
         settings = session.query(Settings)
         goods = session.query(Goods).all()
         for_client = aliased(Clients)
-        payments_query = select(func.coalesce(Payments.for_client_id, Clients.id).label('client_id'),
-                                func.sum(Payments.sum).label('p_sum')).join(Payers).join(Clients, Payers.clients) \
+        payments_query = select(func.coalesce(Clients.duplicate_for, Clients.id).label('client_id'),
+                                func.sum(Payments.sum).label('p_sum')).join(Payers).join(payers_to_clients, isouter=True).\
+            join(Clients, func.coalesce(Payments.for_client_id, payers_to_clients.c.client_id)==Clients.id) \
             .filter(Payments.timestamp >= start_date, func.coalesce(Payments.not_use, False) == False).group_by(
             text("1"))
 
@@ -106,7 +105,7 @@ class Reports:
                        func.cast(func.coalesce(Goods.price, 0), Integer).label('price'),
                        func.coalesce(Goods.weight, 0).label('weight'),
                        func.cast(func.coalesce(Goods.org_price, 0), Integer).label('org_price'),
-                       func.coalesce(Messages.for_client_id, customers_to_clients.c.client_id).label('client_id'),
+                       func.coalesce(Clients.duplicate_for, Clients.id).label('client_id'),
                        func.coalesce(Goods.active, False).label('active'),
                        func.cast(func.sum(MessageOrders.quantity), Float).label('count'),
                        func.aggregate_strings(Messages.props['comment'].as_string(), ";").label('comment'),
@@ -115,6 +114,7 @@ class Reports:
                            'sum')) \
             .select_from(MessageOrders) \
             .join(Messages).join(Customers).join(customers_to_clients, isouter=True).join(Goods) \
+            .join(Clients, func.coalesce(Messages.for_client_id, customers_to_clients.c.client_id) == Clients.id) \
             .filter(Messages.timestamp >= start_date).group_by(text("1,2,3,4,5,6,7")).order_by(Goods.type)
         sum_query = select(
             func.coalesce(Messages.for_client_id, customers_to_clients.c.client_id).label('client_id'),
@@ -142,7 +142,7 @@ class Reports:
         df = df.pivot(index='client_id', columns=['good_id', 'good', 'weight', 'price', 'org_price'], values='count')
         if not to_excel:
             df = df.merge(sum, how="left", left_index=True, right_index=True)
-            df = df.merge(comm, how="left", left_index=True, right_index=True)
+        df = df.merge(comm, how="left", left_index=True, right_index=True)
         df = df.merge(payments, how="left", left_index=True, right_index=True)
         clients = pd.DataFrame.from_records(session.execute(select(Clients.id, Clients.name)).mappings(), index='id')
         clients.columns = pd.MultiIndex.from_product([[''], clients.columns, [''], [''], ['']])
@@ -158,6 +158,7 @@ class Reports:
             df = df.drop(('client_id', '', '', ''), axis=1)
             # оплаты в конец
             column_to_move = df.pop(("Оплаты", '', '', ''))
+            commen_col = df.pop(("comment", '', '', ''))
             # разные варианты обавления формул (сразу в фрейм или потом в excel)
             col_l = get_column_letter(len(df.columns) + 1)
             df['Стоим.', '', '', ''] = [f"=SUMPRODUCT(B4:{col_l}4,B{i + 6}:{col_l}{i + 6})" for i in np.arange(len(df))]
@@ -166,6 +167,7 @@ class Reports:
             df['Орг.', '', '', ''] = None
             df['К оплате', '', '', ''] = None
             df.insert(len(df.columns), "Оплаты", column_to_move)
+            df.insert(len(df.columns), "comment", commen_col)
 
             path = os.path.join(current_app.config['UPLOAD_FOLDER'], 'report.xlsx')
             styled = df.style.apply_index(lambda x: [f'text-align: left; font-weight: bold' for v in x], axis="rows")
@@ -179,11 +181,12 @@ class Reports:
                 sheet['A5'].value = "Орг."
                 sheet.delete_rows(6)
                 r = sheet.max_row
-                c = sheet.max_column - 2
-                col_sum_l = get_column_letter(c - 1)
-                col_org_l = get_column_letter(c)
-                col_itog_l = get_column_letter(c + 1)
-                cmaxl = get_column_letter(c - 2)
+                c = sheet.max_column
+                # имя, стоим, орг, к оплате,  оплаты, коммент
+                col_sum_l = get_column_letter(c - 4)
+                col_org_l = get_column_letter(c - 3)
+                col_itog_l = get_column_letter(c - 2)
+                cmaxl = get_column_letter(c - 5)
                 # сумма
                 # for i in range(6, r + 1):
                 #     sheet[f'{col_sum_l}{i}'].value = f"=SUMPRODUCT(B4:{cmaxl}4,B{i}:{cmaxl}{i})"
@@ -194,7 +197,7 @@ class Reports:
                 for i in range(6, r + 1):
                     sheet[f'{col_itog_l}{i}'].value = f"=SUM({col_sum_l}{i}:{col_org_l}{i})"
                 # суммы к оплате
-                for i in range(2, c + 1):
+                for i in range(2, c):
                     col_sum_l = get_column_letter(i)
                     sheet[f'{col_sum_l}{r + 1}'].value = f"=SUM({col_sum_l}6:{col_sum_l}{r})"
 
