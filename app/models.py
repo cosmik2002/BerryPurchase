@@ -51,6 +51,8 @@ class Goods(Base):
     type: Column = Column(Text)
     short_name: Column = Column(Text)
     weight: Column = Column(Numeric)
+    date_update: Column = Column(DateTime(timezone=True), server_default=func.now())
+    enabled: Column = Column(Boolean, server_default='1')
 
 class Prices(Base):
     __tablename__ = "prices"
@@ -146,6 +148,7 @@ class Payments(Base):
 
 @dataclass
 class Itog(Base):
+    INIT = 0
     CALCULATED = 1
     MANUAL = 2
     __tablename__ = 'itog'
@@ -211,11 +214,11 @@ class ClientsSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = Clients
         include_fk = True
-        # include_relationships = True
+        include_relationships = True
         load_instance = True
 
-    payers = fields.Nested('PayersSchema', many=True)
-    customers = fields.Nested('CustomersSchema', many=True)
+    # payers = fields.Nested('PayersSchema', many=True)
+    # customers = fields.Nested('CustomersSchema', many=True)
 
 class ItogSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
@@ -223,7 +226,7 @@ class ItogSchema(ma.SQLAlchemyAutoSchema):
         include_fk = True
         # include_relationships = True
         load_instance = True
-    client = fields.Nested(ClientsSchema(exclude=('customers', 'payers')))
+    client = fields.Nested(ClientsSchema())
 
 
 class CustomersSchema(ma.SQLAlchemyAutoSchema):
@@ -233,7 +236,7 @@ class CustomersSchema(ma.SQLAlchemyAutoSchema):
         # include_relationships = True
         load_instance = True
 
-    clients = fields.Nested(ClientsSchema(exclude=('customers', 'payers')), many=True)
+    clients = fields.Nested(ClientsSchema(), many=True)
 
 
 class PayersSchema(ma.SQLAlchemyAutoSchema):
@@ -243,7 +246,7 @@ class PayersSchema(ma.SQLAlchemyAutoSchema):
         # include_relationships = True
         load_instance = True
 
-    clients = fields.Nested(ClientsSchema(exclude=('payers', 'customers')), many=True)
+    clients = fields.Nested(ClientsSchema(), many=True)
 
 
 class PaymentsSchema(ma.SQLAlchemyAutoSchema):
@@ -262,9 +265,12 @@ class MessagesSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = Messages
         unknown = EXCLUDE
+        json_module = simplejson
         include_fk = True
         include_relationships = True
         load_instance = True
+
+    timestamp = marshmallow.fields.Function(lambda obj: obj.timestamp.isoformat()+'Z' if obj else None)
 
     order_descr = marshmallow.fields.Str()
     customer = fields.Nested(CustomersSchema)

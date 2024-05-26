@@ -3,7 +3,8 @@ import os
 
 from flask import send_from_directory, current_app, request
 
-from app.models import Settings, Itog, ItogSchema, MessageOrders, Messages
+from app import wa
+from app.models import Settings, Itog, ItogSchema, MessageOrders, Messages, Customers
 from app.reportsBp.reports import Reports
 from app.reportsBp import bp
 
@@ -36,7 +37,13 @@ def get_reports():
 def get_orders(client_id, good_id=None):
     return Reports().getMessages(client_id, good_id)
 
-
+@bp.route('/send', methods=['POST'])
+def send():
+    if request.method == 'POST':
+        data = request.get_json()
+        cust: Customers = current_app.session.query(Customers).get(data['customer'])
+        wa.send_message(cust.wa_id, data['text'])
+    return ''
 @bp.route('/get_itog/<sum>', methods=['GET'])
 def get_itog(sum=None):
     start_date = current_app.session.query(Settings).filter(Settings.name == Settings.START_DATE).one()

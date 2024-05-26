@@ -3,13 +3,14 @@ import re
 from datetime import datetime
 from typing import List
 
-from sqlalchemy import not_, or_, Boolean
+from sqlalchemy import not_, or_, Boolean, func
 
 # import PySimpleGUI as sg
 from sqlalchemy.orm import aliased
 
 from app.models import Customers, Messages, Goods, MessagesSchema, Clients, ClientsSchema, ClientsLinks, \
-    ClientsLinksSchema, CustomersSchema, Payers, PayersSchema, GoodsSchema, MessageOrders, MessageOrdersSchema
+    ClientsLinksSchema, CustomersSchema, Payers, PayersSchema, GoodsSchema, MessageOrders, MessageOrdersSchema, \
+    customers_to_clients
 
 
 def get_messages(session, message_id, search_options, page, page_size):
@@ -21,10 +22,17 @@ def get_messages(session, message_id, search_options, page, page_size):
         if search_options['src']:
             #case insesitive not work
             srcT = search_options['src']
+            filter = [srcT.lower(), srcT.upper(), srcT.title()]
             query = query.join(Customers, isouter=True)
-            query = query.filter(or_(Messages.text.like(f"%{srcT}%"),
-                                     Customers.name.like(f"%{srcT}%"),
-                                     Customers.number.like(f"%{srcT}%")))
+            query = query.join(customers_to_clients, isouter=True)
+            query = query.join(Clients, func.coalesce(Messages.for_client_id, customers_to_clients.c.client_id) == Clients.id, isouter=True)
+            ft = []
+            for f in filter:
+             ft += [Messages.text.like(f"%{f}%"),
+                                 Customers.name.like(f"%{f}%"),
+                                 Customers.number.like(f"%{f}%"),
+                                 Clients.name.like(f"%{f}%")]
+            query = query.filter(or_(*ft))
         if search_options['has_order']:
             query = query.join(MessageOrders, isouter=True)
             query = query.filter(MessageOrders.id == None)
@@ -108,9 +116,9 @@ def load_goods(session, active=False, id=None):
     if id:
         return GoodsSchema().dumps(session.query(Goods).get(id))
     if active:
-        goods = session.query(Goods).filter(Goods.active == True).all()
+        goods = session.query(Goods).filter(Goods.active == True, Goods.enabled == True).all()
     else:
-        goods = session.query(Goods).all()
+        goods = session.query(Goods).filter(Goods.enabled == True).all()
     goods_schema = GoodsSchema(many=True)
     output = goods_schema.dump(goods)
     return output

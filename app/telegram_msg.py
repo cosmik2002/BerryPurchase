@@ -133,7 +133,9 @@ class BerriesBot:
                 # self.process_channel_msg(message, upd)
             else:
                 message: Message = upd.message or upd.edited_message
-                chat_id = message.chat.id
+            chat_id = message.chat.id
+            if chat_id != -1001788039692:
+                continue
             if message.content_type == 'text':
                 cust = self.getCustomer(message)
                 ts = int(message.date)
@@ -143,7 +145,8 @@ class BerriesBot:
                          customer_id = cust.id,
                          chat_id=message.chat.id,
                          timestamp=msg_date,
-                         text=message.text)
+                         text=message.text,)
+                msg.props = {}
                 self.session.add(msg)
                 self.session.commit()
                     # if upd.message.chat.id in self.chat_ids:

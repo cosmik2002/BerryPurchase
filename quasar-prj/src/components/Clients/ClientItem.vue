@@ -3,6 +3,7 @@
     <q-item-section>
       {{item.id}}
       {{item.name}}
+      {{item.duplicate_for}}
   </q-item-section>
   </q-item>
 </template>

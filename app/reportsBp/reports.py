@@ -45,22 +45,36 @@ class Reports:
     def getMessages(self, client_id, good_id=None):
         start_date = current_app.session.query(Settings).filter(Settings.name == Settings.START_DATE).one()
         start_date = dt.strptime(start_date.value, "%d.%m.%Y")
-        for_client = aliased(Clients)
         good_id = int(good_id) if good_id else None
-        query = select(Messages.text.label("1Сообщение"), Messages.props['comment'].as_string().label("4Коммент"),
-                       func.strftime('%d.%m.%Y %H:%M', Messages.timestamp).label("2Дата"), func.aggregate_strings(Goods.name+'-'+func.cast(MessageOrders.quantity, String), ';').label("3Заказ"))\
-            .select_from(MessageOrders).join(Messages).join(Goods) \
+        customer = dict(next(current_app.session.execute(
+            select(Customers.id, Customers.wa_id,Customers.name,Customers.number,Customers.push_name).join(Clients, Customers.clients).filter(Clients.id == client_id)
+        ).mappings()))
+        query = select(Messages.id, Messages.text.label("Сообщение"), Messages.props['comment'].as_string().label("Коммент"),
+                       func.strftime('%d.%m.%Y %H:%M', Messages.timestamp).label("Дата"), func.aggregate_strings(Goods.name+'-'+func.cast(MessageOrders.quantity, String), ';').label("Заказ"))\
+            .select_from(Messages).join(MessageOrders, isouter=True).join(Goods, isouter=True) \
             .join(Customers).join(customers_to_clients, isouter=True).join(Clients, func.coalesce(Messages.for_client_id, customers_to_clients.c.client_id) == Clients.id) \
-            .filter(Messages.timestamp >= start_date, func.coalesce(Clients.duplicate_for, Clients.id) == int(client_id),
-                                                                          Goods.id == func.coalesce(good_id, Goods.id)).group_by(text("1, 2, 3"))
+            .filter(Messages.timestamp >= start_date, func.coalesce(Clients.duplicate_for, Clients.id) == int(client_id))
+        if good_id:
+           query = query.filter(Goods.id == func.coalesce(good_id, Goods.id))
+        query = query.group_by(text("1, 2, 3"))
+        sum_query = select(
+                       func.sum(MessageOrders.quantity * Goods.price + MessageOrders.quantity * Goods.org_price).label('sum')) \
+            .select_from(MessageOrders) \
+            .join(Messages).join(Customers).join(customers_to_clients, isouter=True).join(Goods) \
+            .filter(Messages.timestamp >= start_date, func.coalesce(Messages.for_client_id, customers_to_clients.c.client_id) == int(client_id))
+
         results = [dict(row) for row in current_app.session.execute(query).mappings()]
-        return results
+        sum  = current_app.session.execute(sum_query).all()[0].sum
+        return {'data': results, 'columns': ['Сообщение', 'Дата'], 'customer': customer, 'sum': sum}
 
     def fill_itog(self):
         session: Session = current_app.session
         start_date = session.query(Settings).filter(Settings.name == Settings.START_DATE).one()
         start_date = dt.strptime(start_date.value, "%d.%m.%Y")
         for_client = aliased(Clients)
+        if not session.query(Itog).filter(Itog.date == start_date, Itog.type == Itog.INIT).one():
+            session.add(Itog(date=start_date, type=Itog.INIT))
+            session.commit()
         query = session.query(MessageOrders).join(Messages).join(Goods) \
             .join(Customers).join(Clients, Customers.clients, isouter=True).join(
             Messages.for_client.of_type(for_client), isouter=True) \
@@ -85,12 +99,8 @@ class Reports:
 
     def create_report(self, to_excel=False):
         session = current_app.session
-        # summary = gSheets(session).get_summary()
         start_date = session.query(Settings).filter(Settings.name == Settings.START_DATE).one()
         start_date = dt.strptime(start_date.value, "%d.%m.%Y")
-        settings = session.query(Settings)
-        goods = session.query(Goods).all()
-        for_client = aliased(Clients)
         payments_query = select(func.coalesce(Clients.duplicate_for, Clients.id).label('client_id'),
                                 func.sum(Payments.sum).label('p_sum')).join(Payers).join(payers_to_clients, isouter=True).\
             join(Clients, func.coalesce(Payments.for_client_id, payers_to_clients.c.client_id)==Clients.id) \
@@ -136,7 +146,7 @@ class Reports:
         sum = df.groupby('client_id').sum()['sum'].to_frame()
         sum['sum'] = sum['sum'].astype('float')
         sum.columns = pd.MultiIndex.from_product([[''], sum.columns, [''], [''], ['']])
-        comm = df.groupby('client_id').max()['comment'].to_frame()
+        comm = df.groupby('client_id')['comment'].sum().to_frame()
         comm.columns = pd.MultiIndex.from_product([[''], comm.columns, [''], [''], ['']])
 
         df = df.pivot(index='client_id', columns=['good_id', 'good', 'weight', 'price', 'org_price'], values='count')
@@ -144,6 +154,8 @@ class Reports:
             df = df.merge(sum, how="left", left_index=True, right_index=True)
         df = df.merge(comm, how="left", left_index=True, right_index=True)
         df = df.merge(payments, how="left", left_index=True, right_index=True)
+        if not to_excel:
+            df['', 'diff', '', '', ''] = df['', 'sum', '', '', ''] - df['', 'Оплаты', '', '', '']
         clients = pd.DataFrame.from_records(session.execute(select(Clients.id, Clients.name)).mappings(), index='id')
         clients.columns = pd.MultiIndex.from_product([[''], clients.columns, [''], [''], ['']])
         df = df.merge(clients, left_index=True, right_index=True)

@@ -10,3 +10,4 @@ class Config(object):
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///../clients.sqb'
     SQLALCHEMY_DATABASE_URI_NO_FLASK = os.environ.get('DATABASE_URL_NO_FLASK') or os.environ.get('DATABASE_URL') or 'sqlite:///clients.sqb'
     UPLOAD_FOLDER = os.environ.get('UPLOAD_FOLDER') or 'uploads'
+    REDIS_URL = os.environ.get('REDIS_URL') or 'redis://'

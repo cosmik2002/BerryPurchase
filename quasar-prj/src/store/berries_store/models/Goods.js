@@ -14,7 +14,8 @@ export default class Good extends Model {
       org_price: this.number(null),
       type: this.attr(null),
       active: this.attr(null),
-      short_name: this.attr(null)
+      short_name: this.attr(null),
+      date_update: this.attr(null)
     }
   }
 }

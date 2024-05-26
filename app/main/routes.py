@@ -13,13 +13,16 @@ from app.wa_messages import get_messages, get_clients_links, load_customers, loa
     get_message_order
 from app.models import ClientsLinks, ClientsLinksSchema, Payers, Clients, Customers, \
     MessageOrdersSchema, SettingsSchema, Settings, PaymentsSchema, MessageOrders, Messages, MessagesSchema, \
-    Goods, GoodsSchema, Prices, Itog, ItogSchema
+    Goods, GoodsSchema, Prices, Itog, ItogSchema, ClientsSchema
 from app.zenmoney import ZenMoney
 
 
 @bp.route('/messages', methods=['GET'])
-@bp.route('/messages/<message_id>', methods=['GET', 'POST'])
+@bp.route('/messages/<message_id>', methods=['GET', 'POST', 'DELETE'])
 def messages(message_id=None):
+    if request.method == 'DELETE':
+        current_app.session.query(Messages).filter(Messages.id==message_id).delete()
+        current_app.session.commit()
     if request.method == 'POST':
         data = request.get_json()
         message = MessagesSchema(exclude=('message_order', 'customer')).load(data, session=current_app.session)
@@ -112,9 +115,21 @@ def file_save():
     return json.dumps(counters or {})
 
 
-@bp.route('/clients', methods=['GET'])
+@bp.route('/clients', methods=['GET', 'POST'])
 def clients():
-    return load_clients(current_app.session)
+    if request.method == 'POST':
+        data = request.get_json()
+        if data.get('id'):
+            instance = current_app.session.query(Clients).get(data['id'])
+            load_data = ClientsSchema().load(data, session=current_app.session,
+                                           instance=instance)
+        else:
+            load_data = ClientsSchema().load(data, session=current_app.session)
+            current_app.session.add(load_data)
+        current_app.session.commit()
+        return ClientsSchema().dumps(load_data)
+    else:
+        return load_clients(current_app.session)
 
 
 @bp.route('/get_clients', methods=['GET'])

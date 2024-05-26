@@ -146,7 +146,14 @@ class WhatsApp:
     def login(self):
         self.client.initialize(timeout=1500)
 
+    def send_message(self, contact, text):
+        self.client.sendMessage(contact, text)
+
     def read_messages(self):
+        # response = requests.get('http://localhost:3000/getmessages')
+        # if not response.ok:
+        #     return
+        # messages = response.json()['messages']
         counters = {
             'new_messages': 0,
             'new_customers': 0,
@@ -167,8 +174,12 @@ class WhatsApp:
         # print(messages)
 
         for i, message in enumerate(messages):
+            if message.type in ['revoked']:
+                continue
             def get_props(message):
-                props = {}
+                props = {
+                    'type': message.type
+                }
                 if message.hasMedia:
                     media = message.downloadMedia(
                         timeout=500)  # mimetype: 'image/jpeg', data: (base64?data); mimetype: 'application/pdf', data: (base64?data)

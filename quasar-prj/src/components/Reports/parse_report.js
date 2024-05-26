@@ -1,3 +1,5 @@
+import {Goods} from "src/store/berries_store/models";
+
 export function parseReport(data) {
   const rows = [];
   const columns = [];
@@ -10,6 +12,14 @@ export function parseReport(data) {
   const sumRow = {
     name: "итог"
   };
+  if(false) {
+    columns.push({
+    name: ' sum, , , ',
+    label: ' sum, , , ',
+    field: ' sum, , , ',
+    })
+    idxCol[' sum, , , '] = true;
+  }
   for (const client in data) {
     let client_id;// = data[client]["('', 'client_id', '', '', '')"];
     let comment;
@@ -31,6 +41,7 @@ export function parseReport(data) {
       } else {
         const split = key.split(",");
         good_id = split[0];
+        const goodObj = Goods.find(good_id);
         key = split.slice(1).join(",");
         row[key] = {
           good_id: good_id,
@@ -47,7 +58,8 @@ export function parseReport(data) {
             name: key,
             label: key,
             field: key,
-            good_id: good_id
+            good_id: good_id,
+            active: goodObj && goodObj.active
           };
           columns.push(col);
           idxCol[key] = true;

@@ -7,6 +7,7 @@
         <q-input label="Орг" v-model="upd_good.org_price"></q-input>
         <q-input label="Кор. назв." v-model="upd_good.short_name"></q-input>
         <q-input label="Варианты" v-model="upd_good.variants"></q-input>
+        <q-checkbox label="active" v-model="upd_good.active"></q-checkbox>
       </q-card-section>
       <q-card-actions>
         <q-btn @click="$emit('close')">Отмена</q-btn>

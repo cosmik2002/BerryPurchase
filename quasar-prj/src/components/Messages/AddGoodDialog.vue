@@ -1,5 +1,5 @@
 <template>
-  <q-dialog>
+  <q-dialog @show="show">
     <q-card>
       <q-card-section>
 <!--        <q-list>
@@ -80,12 +80,13 @@ export default {
     },
     getGoods() {
       Goods.api().get('goods');
+    },
+    show(){
+      this.message_order_row = this.row;
+      this.getGoods();
+
     }
   },
-  beforeUpdate() {
-    this.message_order_row = this.row;
-    this.getGoods();
-  }
 }
 </script>
 

@@ -39,7 +39,7 @@ class MarketLoader:
         with open(full_file_name, 'r', encoding='utf-8') as f:
             market = json.load(f)
             for good in market:
-                db_good = self.session.query(Goods).filter(Goods.name == good['name']).all()
+                db_good: Goods = self.session.query(Goods).filter(Goods.name == good['name']).all()
                 if not db_good:
                     db_good = Goods(name=good['name'], price=good['price'], url=good['url'], image=good['image'],
                                     active=True)
@@ -56,6 +56,7 @@ class MarketLoader:
                         db_good.url = good['url']
                         db_good.image = good['image']
                     db_good.active = True
+                    db_good.date_update = datetime.now()
                     self.session.commit()
         self.update_setting(str(datetime.now()))
 

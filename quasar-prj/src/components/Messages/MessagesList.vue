@@ -7,7 +7,9 @@
                 :key="item.id"
                 :item="item"
                 @show_customer_to_client_dialog="showCustomerToClientDialog"
-                @show_message_order_dialog="showMessageOrderDialog">
+                @show_message_order_dialog="showMessageOrderDialog"
+                @show_itog_dialog="showItogDialog"
+    @delete_message="deleteMessage">
 
     </wa-message>
   </q-list>
@@ -20,8 +22,8 @@
   <customer-to-client-dialog v-model="customer_to_client_dialog" :message="message"
                              @close="customer_to_client_dialog=false"></customer-to-client-dialog>
 
-  <message-order-dialog v-model="message_order_dialog" :message="message" try-to
-                        @close="closeMessageOrderDialog(message)"/>
+  <message-order-dialog v-model="message_order_dialog" :message="message" @close="closeMessageOrderDialog(message)"/>
+  <itog-dialog v-model="itog_dialog" :itog="itog" @close="itog_dialog=false"></itog-dialog>
 </template>
 <script>
 
@@ -30,6 +32,8 @@ import WaMessage from "components/Messages/WaMessage.vue";
 import CustomerToClientDialog from "components/Messages/CustomerToClientDialog.vue";
 import MessageOrderDialog from "components/Messages/MessageOrderDialog.vue";
 import {Message} from "src/store/berries_store/models";
+import ItogDialog from "components/Reports/itogDialog.vue";
+import itogDialog from "components/Reports/itogDialog.vue";
 
 const path = process.env.API_URL;
 
@@ -45,14 +49,20 @@ export default {
     page: 1,
     page_size: 20,
     search: '',
-    has_order: false
+    has_order: false,
+    itog: {},
+    itog_dialog: false
   }),
   components: {
     WaMessage,
     CustomerToClientDialog,
-    MessageOrderDialog
+    MessageOrderDialog,
+    ItogDialog
   },
   computed: {
+    itogDialog() {
+      return itogDialog
+    },
     hide_empty: {
       get() {
         return this.hide_e;
@@ -82,12 +92,27 @@ export default {
     },
     messages() {
       if(this.hide_o || this.hide_e){
-      return Message.query().where((msg)=> (this.hide_o ? msg.order_descr=='' : true) && (this.hide_e ? !(msg.props && msg.props.empty) : true)).with('for_client').with('customer').with('customer.clients').all();
+      return Message.query().where((msg)=> (this.hide_o ? msg.order_descr=='' : true) && (this.hide_e ? !(msg.props && msg.props.empty) : true))
+        .with('for_client').with('customer').with('customer.clients').orderBy('timestamp').all();
       }
-      return Message.query().with('for_client').with('customer').with('customer.clients').all();
+      return Message.query().with('for_client').with('customer').with('customer.clients').orderBy('timestamp').all();
     }
   },
   methods: {
+    deleteMessage(item) {
+      Message.api().delete("messages/" + item.id, {delete: item.id});
+    },
+    showItogDialog(item){
+      if (item.customer.clients.length > 0) {
+        const client_id = item.customer.clients[0].id;
+        axios.get(path + '/get_orders/' + client_id).then((res) => {
+          this.itog = res.data;
+          this.itog_dialog = true;
+        }).catch((error) => {
+          console.error(error);
+        });
+      }
+    },
     showCustomerToClientDialog(item) {
       this.message = item;
       this.customer_to_client_dialog = true;

@@ -13,7 +13,11 @@
           option-value="id"
           @filter="filterFn"
            :option-disable="(item) => item && item.customers && item.customers.length > 0"
-        />
+        >
+          <template v-slot:append>
+            <q-btn round dense flat icon="add" @click.stop.prevent="addClient" />
+          </template>
+        </q-select>
         <q-select
           label="Заказ для другого"
           v-model="forClient"
@@ -32,6 +36,17 @@
         <q-btn @click="saveCustomerToClient()">Сохранить</q-btn>
       </q-card-actions>
     </q-card>
+  <q-dialog v-model="client_add_dialog">
+    <q-card>
+      <q-card-section>
+        <q-input v-model="client_name"></q-input>
+      </q-card-section>
+      <q-card-actions>
+        <q-btn @click="client_add_dialog=false">Отмена</q-btn>
+        <q-btn @click="addClient($event, client_name)">Сохранить</q-btn>
+      </q-card-actions>
+    </q-card>
+  </q-dialog>
   </q-dialog>
 </template>
 
@@ -46,14 +61,31 @@ export default {
     client: null,
     forClient: null,
     oldClient: null,
-    options: null
+    options: null,
+    client_add_dialog: false,
+    client_name: ''
   }),
   computed: {
     clients() {
-      return Client.query().with('customers').orderBy('name').all();
+      return Client.query().orderBy('name').all();
     }
   },
   methods: {
+    async addClient(ev, data) {
+      console.log(ev);
+      console.log(data);
+      if (data) {
+        let result = await Client.api().post('clients', {
+          name: data
+        })
+        debugger
+        this.client = result.entities.clients[0];
+        this.client_add_dialog = false;
+      } else {
+        this.client_name = this.message.customer.name;
+        this.client_add_dialog = true;
+      }
+    },
     getClients() {
       Client.api().get('clients');
     },
