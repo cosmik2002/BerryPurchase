@@ -113,6 +113,7 @@
         type="textarea"
         autogrow/>
       <q-card-actions>
+        <img v-if="itog.customer.params && ((itog.customer.params.from || '') ==='telegram')" src="icons/telegram.svg" height="32" width="32"/>
         <q-btn @click="itog_dialog=false">Close</q-btn>
         <q-btn @click="send()">Send</q-btn>
       </q-card-actions>
@@ -146,7 +147,8 @@ export default {
     good: {},
     message_order_dialog: false,
     message: {},
-    send_text: ''
+    send_text: '',
+    dates_params: ''//'?start_date=14.06.2024&end_date=25.06.2024'
   }),
   methods: {
     send(a, b, c) {
@@ -155,7 +157,7 @@ export default {
     rowClick(props) {
       if (!props.row) {
         //заголовок
-        axios.get(path + '/goods/' + props.col.good_id).then((res) => {
+        axios.get(path + '/goods/' + props.col.good_id+this.dates_params).then((res) => {
           this.good = new Goods(res.data);
           this.good_dialog = true;
         }).catch((error) => {
@@ -167,8 +169,8 @@ export default {
       const cell = props.col ? props.row[props.col.name] : {};
       if (cell.good_id) {
         //на клетку с кол-вом
-        axios.get(path + '/get_orders/' + client_id + '/' + cell.good_id).then((res) => {
-          debugger
+        axios.get(path + '/get_orders/' + client_id + '/' + cell.good_id+this.dates_params).then((res) => {
+           debugger
           this.itog = res.data;
           this.itog_dialog = true;
         }).catch((error) => {
@@ -176,17 +178,18 @@ export default {
         });
       } else {
         //на клетку с клиентом
-        axios.get(path + '/get_orders/' + client_id).then((res) => {
+        axios.get(path + '/get_orders/' + client_id+this.dates_params).then((res) => {
           this.itog = res.data;
           this.send_text = 'Добрый день!\n' +
             'Сумма за ягоды из Сербии - \n' +
             this.itog.sum +
             '\nЗаказ: \n'+
-            this.itog.data[0]['Заказ']+
+            this.itog.order+
             '\nОплата по реквизитам сбербанк 2202200785632462 или\n' +
             'по номеру телефона +79191084711\n' +
-            ' Без комментариев к платежу , чек мне в лс.\n' +
-            'Получатель: Наталья Владимировна Р'
+            ' Без комментариев к платежу , чек мне в лс. НЕТ ЧЕКА = нет оплаты\n' +
+            'Получатель: Наталья Владимировна Р\n'+
+            'Оплата до 15:00 28 июня '
           this.itog_dialog = true;
         }).catch((error) => {
           console.error(error);
@@ -215,7 +218,7 @@ export default {
     },
     async clientGoodReport() {
       await Goods.api().get('goods')
-      const res = await axios.get(path + '/client_good_report');
+      const res = await axios.get(path + '/client_good_report'+this.dates_params);
       const rep = parseReport(res.data);
       this.columns = rep.columns;
       this.report = rep.rows

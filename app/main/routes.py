@@ -9,6 +9,7 @@ from app.g_sheets import gSheets
 from app.main import bp
 from app.market_parser import MarketLoader
 from app.payment_messages import PaymentsProcessor
+from app.telegram_api import TelegramApi
 from app.wa_messages import get_messages, get_clients_links, load_customers, load_payers, load_clients, load_goods, \
     get_message_order
 from app.models import ClientsLinks, ClientsLinksSchema, Payers, Clients, Customers, \
@@ -86,6 +87,9 @@ def start_wa_client():
 def load_messages():
     return wa.read_messages()
 
+@bp.route('/load_messages_tg', methods=['GET'])
+def load_messages_tg():
+    return TelegramApi().load_messages()
 
 @bp.route('/wa_logout', methods=['GET'])
 def wa_logout():
@@ -233,7 +237,12 @@ def customers_to_clients():
             client: Clients = current_app.session.query(Clients).get(data['for_client_id'])
             message.for_client_id = client.id
             current_app.session.commit()
-        elif data.get('client_id'):
+        else:
+            message: Messages = current_app.session.query(Messages).get(data['message_id'])
+            message.for_client_id = None
+            current_app.session.commit()
+
+        if data.get('client_id'):
             customer: Customers = current_app.session.query(Customers).get(data['customer_id'])
             client: Clients = current_app.session.query(Clients).get(data['client_id'])
             if customer.clients and customer.clients[0].id != client.id:
@@ -241,6 +250,12 @@ def customers_to_clients():
             if not customer.clients:
                 customer.clients.append(client)
                 current_app.session.commit()
+        else:
+            customer: Customers = current_app.session.query(Customers).get(data['customer_id'])
+            if customer.clients:
+                customer.clients.remove(customer.clients[0])
+            current_app.session.commit()
+
         response_object = {**response_object, **data}
         return response_object
 

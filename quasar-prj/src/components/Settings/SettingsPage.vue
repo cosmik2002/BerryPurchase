@@ -1,6 +1,7 @@
 <template>
     <q-btn @click="startWaClient()">Запустить Watsapp</q-btn>
-  <q-btn @click="loadMessages()">Load Messages</q-btn>
+  <q-btn @click="loadMessages(false)">Load Messages</q-btn>
+  <q-btn @click="loadMessages(true)">Load TG</q-btn>
   <q-btn @click="waLogout()">waLogout</q-btn>
   <q-btn @click="waLogin()">waLogin</q-btn>
   <q-btn @click="fillPayments">fillPayments</q-btn>
@@ -162,8 +163,9 @@ waLogin() {
         console.log(error);
       });
     },
-    loadMessages() {
-      axios.get(path + '/load_messages').then((res) => {
+    loadMessages(isTg) {
+      let action = isTg ? '/load_messages_tg' : '/load_messages';
+      axios.get(path + action).then((res) => {
         this.upload_result=res.data;
       }).catch((error) => {
         console.error(error);

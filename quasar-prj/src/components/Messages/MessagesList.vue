@@ -20,7 +20,7 @@
   </div>
 
   <customer-to-client-dialog v-model="customer_to_client_dialog" :message="message"
-                             @close="customer_to_client_dialog=false"></customer-to-client-dialog>
+                             @close="closeCustomerToClientDialog(message)"></customer-to-client-dialog>
 
   <message-order-dialog v-model="message_order_dialog" :message="message" @close="closeMessageOrderDialog(message)"/>
   <itog-dialog v-model="itog_dialog" :itog="itog" @close="itog_dialog=false"></itog-dialog>
@@ -116,6 +116,10 @@ export default {
     showCustomerToClientDialog(item) {
       this.message = item;
       this.customer_to_client_dialog = true;
+    },
+    closeCustomerToClientDialog(item) {
+      Message.api().get('messages/' + item.id);
+      this.customer_to_client_dialog = false;
     },
     showMessageOrderDialog(item, index) {
       this.message = item;

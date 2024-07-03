@@ -30,6 +30,8 @@ def get_messages(session, message_id, search_options, page, page_size):
             for f in filter:
              ft += [Messages.text.like(f"%{f}%"),
                                  Customers.name.like(f"%{f}%"),
+                                 Customers.short_name.like(f"%{f}%"),
+                                 Customers.push_name.like(f"%{f}%"),
                                  Customers.number.like(f"%{f}%"),
                                  Clients.name.like(f"%{f}%")]
             query = query.filter(or_(*ft))

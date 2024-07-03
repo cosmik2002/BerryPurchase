@@ -5,6 +5,7 @@
         <q-input label="Название" v-model="upd_good.name"></q-input>
         <q-input label="Цена" v-model="upd_good.price"></q-input>
         <q-input label="Орг" v-model="upd_good.org_price"></q-input>
+        <q-input label="Вес" v-model="upd_good.weight"></q-input>
         <q-input label="Кор. назв." v-model="upd_good.short_name"></q-input>
         <q-input label="Варианты" v-model="upd_good.variants"></q-input>
         <q-checkbox label="active" v-model="upd_good.active"></q-checkbox>

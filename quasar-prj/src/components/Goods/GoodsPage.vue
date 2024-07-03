@@ -31,6 +31,14 @@
                    </q-input>
 
                </span>
+                <span v-else-if="col.name==='weight'">
+                   <q-input
+                     dense
+                     debounce="1000"
+                     :model-value="props.row[col.name] ? parseFloat(props.row[col.name]) : ''"
+                     @update:model-value="updRow(props.row, {[col.name]: $event})">
+                   </q-input>
+               </span>
                 <span v-else-if="col.name==='variants' || col.name==='type'">
                    <q-input
                      dense
@@ -127,6 +135,10 @@ export default {
         name: 'type',
         label: 'Тип',
         field: 'type',
+      }, {
+        name: 'weight',
+        label: 'Вес',
+        field: 'weight',
       }, {
         name: 'actions',
         label: 'Действия',

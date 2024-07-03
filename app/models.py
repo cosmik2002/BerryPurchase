@@ -82,6 +82,7 @@ class Customers(Base):
     number: Column = Column(Text, index=True)
     short_name: Column = Column(Text)
     push_name: Column = Column(Text)
+    params: Column = Column(JSON)
     clients = relationship(Clients, secondary=customers_to_clients, back_populates='customers')
 
 
@@ -92,6 +93,7 @@ class Payers(Base):
     card_number: Column = Column(Text, index=True)
     bank_name: Column = Column(Text, index=True)
     comments: Column = Column(Text)
+    params: Column = Column(JSON)
     clients = relationship(Clients, secondary=payers_to_clients, back_populates="payers")
 
 
@@ -143,6 +145,7 @@ class Payments(Base):
     comment: Column = Column(Text)
     sum: Column = Column(Numeric(15,2))
     not_use: Column = Column(Boolean)
+    params: Column = Column(JSON)
     ost = column_property(func.sum(sum).over(order_by=timestamp))
     payer = relationship(Payers, foreign_keys=payer_id)
 
@@ -163,6 +166,7 @@ class Itog(Base):
     payed_sum: Column = Column(Numeric(15,2))
     payment_id: Column = Column(Integer, ForeignKey(Payments.id), nullable=True)
     type: Column = Column(Integer)
+    params: Column = Column(JSON)
     client = relationship(Clients, foreign_keys=client_id)
 
 # class Task(Base):
@@ -271,6 +275,7 @@ class MessagesSchema(ma.SQLAlchemyAutoSchema):
         load_instance = True
 
     timestamp = marshmallow.fields.Function(lambda obj: obj.timestamp.isoformat()+'Z' if obj else None)
+    text = marshmallow.fields.Function(lambda obj: obj.text.replace('\n', '<br/>').replace('\r', '') if obj.text is not None else None)
 
     order_descr = marshmallow.fields.Str()
     customer = fields.Nested(CustomersSchema)

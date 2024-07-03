@@ -9,6 +9,7 @@ from multiprocessing import Process
 from pathlib import Path
 from typing import List, Dict
 
+import requests
 from javascript import require, On
 
 import qrcode
@@ -22,7 +23,7 @@ from database import SessionLocal
 # https://github.com/extremeheat/JSPyBridge
 # Whatsapp-Web
 #
-
+web_version = '2.2412.54'
 
 class WhatsApp:
     __instance = None
@@ -31,6 +32,7 @@ class WhatsApp:
         if not hasattr(cls, 'instance'):
             cls.__instance = super(WhatsApp, cls).__new__(cls)
             cls.__instance.__initialized = False
+        print('wa_init')
         return cls.__instance
 
     def __del__(self):
@@ -80,14 +82,14 @@ class WhatsApp:
     def start_client(self):
         self.ready = False
         self.session = SessionLocal
-        Client = require('whatsapp-web.js', '^1.23').Client
-        LocalAuth = require('whatsapp-web.js', '^1.23').LocalAuth
+        Client = require('whatsapp-web.js').Client
+        LocalAuth = require('whatsapp-web.js').LocalAuth
         # self.session = session
         self.client = Client({
             'authStrategy': LocalAuth(),
             'webVersionCache': {
                 'type': 'remote',
-                'remotePath': "https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.2410.1.html"
+                'remotePath': f"https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/{web_version}.html"
         }
         })
 
@@ -149,6 +151,7 @@ class WhatsApp:
     def send_message(self, contact, text):
         self.client.sendMessage(contact, text)
 
+
     def read_messages(self):
         # response = requests.get('http://localhost:3000/getmessages')
         # if not response.ok:
@@ -160,6 +163,40 @@ class WhatsApp:
             'upd_messages': 0,
             'success': False
         }
+
+        def get_props(message):
+            props = {
+                'type': message.type
+            }
+            if message.hasMedia:
+                media = message.downloadMedia(
+                    timeout=500)  # mimetype: 'image/jpeg', data: (base64?data); mimetype: 'application/pdf', data: (base64?data)
+                if media:
+                    ext = guess_extension(media.mimetype) or ''
+                    filename = Path(self.media_path, message.id._serialized + ext)
+                    with open(filename, 'wb') as f:
+                        f.write(base64.b64decode(media.data.encode('utf-8')))
+                    props['media'] = {
+                        'mimetype': media.mimetype,
+                        'file': str(filename)
+                    }
+            if len(list(message.links)) > 0:
+                props['links'] = list(message.links)
+            return props
+
+        def getCustomer():
+            cust = self.session.query(Customers).filter_by(wa_id=message['author']).all()
+            if not cust:
+                sender = message.getContact()
+                cust = Customers(wa_id=sender.id._serialized, name=sender.name, number=sender.number,
+                                 short_name=sender.shortName, push_name=sender.pushname)
+                self.session.add(cust)
+                self.session.commit()
+                counters['new_customers'] += 1
+            else:
+                cust = cust[0]
+            return cust
+
         if not self.ready:
             return counters
         chats = self.client.getChats(timeout=1500)
@@ -174,42 +211,16 @@ class WhatsApp:
         # print(messages)
 
         for i, message in enumerate(messages):
-            if message.type in ['revoked']:
-                continue
-            def get_props(message):
-                props = {
-                    'type': message.type
-                }
-                if message.hasMedia:
-                    media = message.downloadMedia(
-                        timeout=500)  # mimetype: 'image/jpeg', data: (base64?data); mimetype: 'application/pdf', data: (base64?data)
-                    if media:
-                        ext = guess_extension(media.mimetype) or ''
-                        filename = Path(self.media_path, message.id._serialized + ext)
-                        with open(filename, 'wb') as f:
-                            f.write(base64.b64decode(media.data.encode('utf-8')))
-                        props['media'] = {
-                            'mimetype': media.mimetype,
-                            'file': str(filename)
-                        }
-                if len(list(message.links)) > 0:
-                    props['links'] = list(message.links)
-                return props
-
-            def getCustomer():
-                cust = self.session.query(Customers).filter_by(wa_id=message['author']).all()
-                if not cust:
-                    sender = message.getContact()
-                    cust = Customers(wa_id=sender.id._serialized, name=sender.name, number=sender.number,
-                                     short_name=sender.shortName, push_name=sender.pushname)
-                    self.session.add(cust)
-                    self.session.commit()
-                    counters['new_customers'] += 1
-                else:
-                    cust = cust[0]
-                return cust
-
+            id = message.id.remote + '_' + message.id.id + '_' + message.id.participant._serialized
             msg = self.session.query(Messages).filter_by(wa_id=message.id._serialized).all()
+            if message.type in ['revoked']:
+                if not msg:
+                    continue
+                elif msg[0].props.get('type') != message.type:
+                    msg[0].props = {**msg[0].props, 'type': 'revoked'}
+                    msg[0].text = ''
+                    self.session.commit()
+                    continue
             if not msg:
                 msg_time = datetime.utcfromtimestamp(message['timestamp'])
                 cust = getCustomer()
@@ -223,6 +234,11 @@ class WhatsApp:
                 self.session.add(msg)
                 self.session.commit()
                 counters['new_messages'] += 1
+            else:
+                if msg[0].props.get('type') != message.type or msg[0].text != message.body:
+                    msg[0].props = {**msg[0].props, 'type': message.type, 'changed': datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+                    msg[0].text = message.body
+                    self.session.commit()
             # else:
             #     if message.hasQuotedMsg:
             #         qt_msg = message.getQuotedMessage()

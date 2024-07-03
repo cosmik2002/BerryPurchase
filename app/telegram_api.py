@@ -1,3 +1,4 @@
+import asyncio
 import json
 import os
 from datetime import datetime
@@ -23,21 +24,36 @@ class TelegramApi:
         self.api_id = os.getenv('TELEGRAM_API_ID')
         self.api_hash = os.getenv('TELEGRAM_API_HASH')
         self.username = os.getenv('TELEGRAM_USERNAME')
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
         self.client = TelegramClient(self.username, self.api_id, self.api_hash, system_version="4.16.30-vxCUSTOM")
         self.client.start()
+
+    def load_messages(self):
         with self.client:
             self.client.loop.run_until_complete(self.work())
+        return self.counters
 
-    def getCustomer(self, message:Message) -> Customers:
+    def getCustomer(self, message: Message) -> Customers:
         cust = self.session.query(Customers).filter_by(wa_id=message.from_id.user_id).all()
         if not cust:
-            cust = Customers(wa_id=message.from_id.user_id, name=f"{message.sender.first_name} {message.sender.last_name}", number=message.sender.username)
+            cust = Customers(wa_id=message.from_id.user_id,
+                             name=f"{message.sender.first_name} {message.sender.last_name}",
+                             number=message.sender.username)
             self.session.add(cust)
             self.session.commit()
             self.counters['new_customers'] += 1
         else:
             cust = cust[0]
         return cust
+
+    def send(self, c_id: int, text):
+        with self.client:
+            self.client.loop.run_until_complete(self._send(c_id, text))
+
+    async def _send(self, c_id: int, text):
+        # Now you can use all client methods listed below, like for example...
+        await self.client.send_message(c_id, text)
 
     async def work(self):
         client = self.client
@@ -50,7 +66,7 @@ class TelegramApi:
             msg = self.session.query(Messages).filter_by(wa_id=message_id).all()
             if not msg:
                 cust = self.getCustomer(message)
-                msg = Messages(wa_id= message_id,
+                msg = Messages(wa_id=message_id,
                                from_id=message.sender.id,
                                customer_id=cust.id,
                                chat_id=message.chat_id,
@@ -59,6 +75,9 @@ class TelegramApi:
                 msg.props = {'msg': 'tg'}
                 self.session.add(msg)
                 self.session.commit()
+                self.counters['new_messages'] += 1
+            else:
+                self.counters['upd_messages'] += 1
         # url = -1001788039692
         # channel = await self.client.get_entity(url)
         # await self.dump_all_participants(channel)
@@ -66,20 +85,19 @@ class TelegramApi:
 
     async def dump_all_participants(self, channel):
         """Записывает json-файл с информацией о всех участниках канала/чата"""
-        offset_user = 0    # номер участника, с которого начинается считывание
-        limit_user = 100   # максимальное число записей, передаваемых за один раз
+        offset_user = 0  # номер участника, с которого начинается считывание
+        limit_user = 100  # максимальное число записей, передаваемых за один раз
 
-        all_participants = []   # список всех участников канала
+        all_participants = []  # список всех участников канала
         filter_user = ChannelParticipantsSearch('')
 
         while True:
             participants = await self.client(GetParticipantsRequest(channel,
-                filter_user, offset_user, limit_user, hash=0))
+                                                                    filter_user, offset_user, limit_user, hash=0))
             if not participants.users:
                 break
             all_participants.extend(participants.users)
             offset_user += len(participants.users)
-
 
         all_users_details = []  # список словарей с интересующими параметрами участников канала
 
@@ -134,5 +152,5 @@ class TelegramApi:
             json.dump(all_messages, outfile, ensure_ascii=False, cls=DateTimeEncoder)
 
 
-if __name__=="__main__":
-     TelegramApi()
+if __name__ == "__main__":
+    TelegramApi().load_messages()

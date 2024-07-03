@@ -9,8 +9,9 @@
           }}
           <span v-if="item.customer && item.customer.clients && item.customer.clients.length>0">Клиент: {{ item.customer.clients[0].name }}</span>
           <span v-if="item.for_client_id">Клиент: {{ item.for_client.name }}</span>
+          <span v-if="getClient()">Клиент1: {{ getClient() }}</span>
         </q-item-label>
-        <q-item-label> {{ item.text }}</q-item-label>
+        <q-item-label><span v-html="getText()"></span> </q-item-label>
         <q-item-label v-if="item.props && item.props.media && item.props.media.mimetype=='image/jpeg'">
           <img :src="getMedia()" alt="img" height="200">
 
@@ -68,6 +69,21 @@ export default {
     quoted: null
   }),
   methods: {
+    getText(){
+      return this.item.text;
+    },
+    getClient() {
+      //cheating не помогло
+      //при удалении привязки к клиенту не обновляется сообщение, возможно в orm привязка убирается после отрисовка сообщения, когда добавляем то все ок
+      // let mes = Message.query().where('id', this.item.id).with('for_client').with('customer').with('customer.clients').get()[0];
+      if(this.item.for_client_id) {
+        return this.item.for_client.name;
+      }
+      if(this.item.customer.clients && this.item.customer.clients.length > 0){
+        return this.item.customer.clients[0].name
+      }
+      return false;
+    },
     getMedia() {
       return path + "/" + this.item.props.media.file;
     },

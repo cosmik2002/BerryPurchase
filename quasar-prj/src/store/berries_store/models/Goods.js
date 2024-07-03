@@ -15,6 +15,7 @@ export default class Good extends Model {
       type: this.attr(null),
       active: this.attr(null),
       short_name: this.attr(null),
+      weight: this.number(null),
       date_update: this.attr(null)
     }
   }

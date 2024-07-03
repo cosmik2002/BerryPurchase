@@ -9,14 +9,14 @@
           v-model="client"
           :options="options"
           use-input
-          option-label="name"
           option-value="id"
           @filter="filterFn"
-           :option-disable="(item) => item && item.customers && item.customers.length > 0"
+          :option-label="(item) => (item && item.customers && item.customers.length > 0) ? 'x '+item.name : item.name"
         >
           <template v-slot:append>
-            <q-btn round dense flat icon="add" @click.stop.prevent="addClient" />
+            <q-btn round dense flat icon="add" @click.stop.prevent="addClient"/>
           </template>
+
         </q-select>
         <q-select
           label="Заказ для другого"
@@ -36,22 +36,22 @@
         <q-btn @click="saveCustomerToClient()">Сохранить</q-btn>
       </q-card-actions>
     </q-card>
-  <q-dialog v-model="client_add_dialog">
-    <q-card>
-      <q-card-section>
-        <q-input v-model="client_name"></q-input>
-      </q-card-section>
-      <q-card-actions>
-        <q-btn @click="client_add_dialog=false">Отмена</q-btn>
-        <q-btn @click="addClient($event, client_name)">Сохранить</q-btn>
-      </q-card-actions>
-    </q-card>
-  </q-dialog>
+    <q-dialog v-model="client_add_dialog">
+      <q-card>
+        <q-card-section>
+          <q-input v-model="client_name"></q-input>
+        </q-card-section>
+        <q-card-actions>
+          <q-btn @click="client_add_dialog=false">Отмена</q-btn>
+          <q-btn @click="addClient($event, client_name)">Сохранить</q-btn>
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </q-dialog>
 </template>
 
 <script>
-import {Client, CustomersToClients} from "src/store/berries_store/models";
+import {Client, CustomersToClients, Message} from "src/store/berries_store/models";
 
 export default {
   name: "CustomerToClientDialog",
@@ -78,7 +78,6 @@ export default {
         let result = await Client.api().post('clients', {
           name: data
         })
-        debugger
         this.client = result.entities.clients[0];
         this.client_add_dialog = false;
       } else {
@@ -89,19 +88,19 @@ export default {
     getClients() {
       Client.api().get('clients');
     },
-      filterFn (val, update) {
-        if (val === '') {
-          update(() => {
-            this.options = this.clients;
-          })
-          return
-        }
-
+    filterFn(val, update) {
+      if (val === '') {
         update(() => {
-          const needle = val.toLowerCase()
-          this.options = this.clients.filter(v => v.name.toLowerCase().indexOf(needle) > -1)
+          this.options = this.clients;
         })
-      },
+        return
+      }
+
+      update(() => {
+        const needle = val.toLowerCase()
+        this.options = this.clients.filter(v => v.name.toLowerCase().indexOf(needle) > -1)
+      })
+    },
     saveCustomerToClient() {
       CustomersToClients.api().post('customers_to_clients', {
         client_id: this.client ? this.client.id : null,
@@ -109,29 +108,31 @@ export default {
         message_id: this.message.id,
         for_client_id: this.forClient ? this.forClient.id : null
       }).then((results) => {
-        if (this.oldClient) {
+        if (this.oldClient && this.oldClient.id !== this.client.id) {
           CustomersToClients.delete([this.message.customer.id, this.oldClient.id]);
         }
       });
       this.$emit('close');
-    }
-  },
-  beforeUpdate() {
-    if(this.message && this.message.for_client){
-      this.forClient = this.message.for_client;
-    }
-    if (this.message && this.message.customer.clients.length > 0) {
-      this.client = this.message.customer.clients[0];
-      this.oldClient = this.message.customer.clients[0];
-    } else {
-      this.client = null;
-      this.oldClient = null;
-    }
-  },
+      }
+    },
+    beforeUpdate() {
+      if (this.message && this.message.for_client) {
+        this.forClient = this.message.for_client;
+      } else {
+        this.forClient = null;
+      }
+      if (this.message && this.message.customer.clients.length > 0) {
+        this.client = this.message.customer.clients[0];
+        this.oldClient = this.message.customer.clients[0];
+      } else {
+        this.client = null;
+        this.oldClient = null;
+      }
+    },
     mounted() {
-    this.getClients();
+      this.getClients();
+    }
   }
-}
 </script>
 
 <style scoped>
